@@ -1,5 +1,5 @@
 {
-  "name": "carwarshmanagementapp",
+  "name": "carwashmanagementapp",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -9,14 +9,45 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@gorhom/bottom-sheet": "^5.2.6",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-navigation/bottom-tabs": "^7.4.7",
+    "@react-navigation/native": "^7.1.17",
+    "@react-navigation/native-stack": "^7.3.26",
+    "@reduxjs/toolkit": "^2.9.0",
     "expo": "~54.0.12",
+    "expo-auth-session": "^7.0.8",
+    "expo-constants": "^18.0.9",
+    "expo-crypto": "^15.0.7",
+    "expo-linear-gradient": "~15.0.7",
+    "expo-local-authentication": "^17.0.7",
+    "expo-secure-store": "^15.0.7",
     "expo-status-bar": "~3.0.8",
+    "nativewind": "4.1.23",
+    "prettier-plugin-tailwindcss": "^0.5.14",
     "react": "19.1.0",
-    "react-native": "0.81.4"
+    "react-dom": "19.1.0",
+    "react-native": "0.81.4",
+    "react-native-gesture-handler": "^2.28.0",
+    "react-native-reanimated": "~4.1.1",
+    "react-native-safe-area-context": "^5.6.1",
+    "react-native-screens": "^4.16.0",
+    "react-native-web": "^0.21.0",
+    "react-native-worklets": "0.5.1",
+    "react-redux": "^9.2.0",
+    "redux-persist": "^6.0.0",
+    "tailwindcss": "^3.4.18"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "typescript": "~5.9.2"
+    "babel-preset-expo": "^54.0.3",
+    "typescript": "~5.9.2",
+    "@react-native-community/cli": "latest"
+  },
+  "overrides": {
+    "nativewind": {
+      "react-native-css-interop": "0.1.22"
+    }
   },
   "private": true
 }

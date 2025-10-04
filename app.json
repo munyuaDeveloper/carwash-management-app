@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "CarWarshManagementApp",
-    "slug": "CarWarshManagementApp",
+    "name": "CarWashManagementApp",
+    "slug": "CarWashManagementApp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,10 +21,17 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.munyua.CarWashManagementApp"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c664abc7-8fef-4476-a99a-f64b9a199806"
+      }
     }
   }
 }
