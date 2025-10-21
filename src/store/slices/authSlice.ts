@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { User, LoginCredentials } from '../../types/auth';
+import { User, LoginCredentials, ForgotPasswordRequest, ResetPasswordRequest } from '../../types/auth';
+import { authApi } from '../../services/apiEnhanced';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -64,42 +65,56 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      // Simulate API call - replace with actual authentication logic
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Make actual API call
+      const response = await authApi.login(credentials);
 
-      // Mock successful login response
-      const mockUser: User = {
-        id: '1',
-        phone: credentials.phone,
-        name: 'John Doe',
-        role: 'owner',
-        businessId: 'business_1',
-      };
+      if (response.status === 'error') {
+        return rejectWithValue(response.error || 'Login failed');
+      }
 
-      const mockToken = 'mock_jwt_token_' + Date.now();
+      // Handle the actual API response structure
+      if (!response.data) {
+        return rejectWithValue('Invalid response from server');
+      }
+
+      const { token, data } = response.data;
+      const user = data.user;
 
       // Store user data and token
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(mockUser));
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
       // Store token securely, with fallback to AsyncStorage if SecureStore fails
       try {
-        await SecureStore.setItemAsync(STORAGE_KEYS.TOKEN, mockToken);
+        await SecureStore.setItemAsync(STORAGE_KEYS.TOKEN, token);
       } catch (secureStoreError) {
         console.warn('SecureStore not available, falling back to AsyncStorage:', secureStoreError);
-        await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, mockToken);
+        await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, token);
       }
 
-      return { user: mockUser, token: mockToken };
+      return { user, token };
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Network error occurred');
     }
   }
 );
 
 export const logout = createAsyncThunk(
   'auth/logout',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
+      const state = getState() as { auth: AuthState };
+      const token = state.auth.token;
+
+      // Call logout API if we have a token
+      if (token) {
+        try {
+          await authApi.logout(token);
+        } catch (apiError) {
+          // Continue with local logout even if API call fails
+          console.warn('Logout API call failed, continuing with local logout:', apiError);
+        }
+      }
+
       // Clear all stored data
       await Promise.all([
         AsyncStorage.removeItem(STORAGE_KEYS.USER),
@@ -130,6 +145,40 @@ export const completeOnboarding = createAsyncThunk(
       return true;
     } catch (error: any) {
       return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async (request: ForgotPasswordRequest, { rejectWithValue }) => {
+    try {
+      const response = await authApi.forgotPassword(request);
+
+      if (response.status === 'error') {
+        return rejectWithValue(response.error || 'Failed to send reset email');
+      }
+
+      return { message: 'Reset email sent successfully' };
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword',
+  async ({ token, request }: { token: string; request: ResetPasswordRequest }, { rejectWithValue }) => {
+    try {
+      const response = await authApi.resetPassword(token, request);
+
+      if (response.status === 'error') {
+        return rejectWithValue(response.error || 'Failed to reset password');
+      }
+
+      return { message: 'Password reset successfully' };
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
     }
   }
 );
@@ -195,6 +244,36 @@ const authSlice = createSlice({
     builder
       .addCase(completeOnboarding.fulfilled, (state) => {
         state.onboardingCompleted = true;
+      });
+
+    // Forgot password
+    builder
+      .addCase(forgotPassword.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(forgotPassword.fulfilled, (state) => {
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Reset password
+    builder
+      .addCase(resetPassword.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       });
   },
 });

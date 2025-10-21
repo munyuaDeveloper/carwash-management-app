@@ -31,7 +31,8 @@
     "extra": {
       "eas": {
         "projectId": "c664abc7-8fef-4476-a99a-f64b9a199806"
-      }
+      },
+      "API_BASE_URL": "https://carwash-backend-sandy.vercel.app"
     }
   }
 }

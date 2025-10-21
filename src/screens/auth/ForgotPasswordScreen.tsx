@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,20 +7,112 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '../../store';
+import { forgotPassword, resetPassword, clearError } from '../../store/slices/authSlice';
+import { ForgotPasswordRequest, ResetPasswordRequest } from '../../types/auth';
 
 export const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
   const [step, setStep] = useState<'request' | 'verify'>('request');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Clear error when component mounts
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  // Handle forgot password request
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    try {
+      const request: ForgotPasswordRequest = { email: email.trim() };
+      const result = await dispatch(forgotPassword(request));
+
+      if (forgotPassword.fulfilled.match(result)) {
+        setSuccessMessage('Password reset email sent successfully! Please check your email for further instructions.');
+        // Note: In a real app, you might want to extract the reset token from the email
+        // For now, we'll simulate moving to the next step
+        setStep('verify');
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+    }
+  };
+
+  // Handle password reset
+  const handleResetPassword = async () => {
+    if (!newPassword.trim() || !confirmPassword.trim()) {
+      Alert.alert('Error', 'Please fill in all password fields');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (!isValidPassword(newPassword)) {
+      Alert.alert('Error', 'Password must be at least 8 characters long and contain at least one letter and one number');
+      return;
+    }
+
+    try {
+      const request: ResetPasswordRequest = {
+        password: newPassword,
+        passwordConfirm: confirmPassword,
+      };
+      const result = await dispatch(resetPassword({ token: resetToken, request }));
+
+      if (resetPassword.fulfilled.match(result)) {
+        Alert.alert(
+          'Success',
+          'Password reset successfully! You can now log in with your new password.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Login' as never),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+    }
+  };
+
+  // Email validation
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Password validation
+  const isValidPassword = (password: string): boolean => {
+    return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -29,44 +121,58 @@ export const ForgotPasswordScreen: React.FC = () => {
         className="flex-1"
       >
         <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-          <View className="flex-1 px-8 py-12">
+          <View className="flex-1 px-8 py-12 pt-16">
             {/* Header */}
             <View className="mb-8">
               <Text className="text-3xl font-bold text-gray-900 mb-2">
-                {step === 'request' ? 'Reset Password' : 'Verify OTP'}
+                {step === 'request' ? 'Reset Password' : 'Set New Password'}
               </Text>
               <Text className="text-gray-600 text-base">
                 {step === 'request'
-                  ? 'Enter your phone number to receive a verification code'
-                  : 'Enter the verification code sent to your phone'
+                  ? 'Enter your email address to receive a password reset link'
+                  : 'Enter your new password'
                 }
               </Text>
             </View>
+
+            {/* Error Message */}
+            {error && (
+              <View className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+                <Text className="text-red-700 text-sm">{error}</Text>
+              </View>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <View className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+                <Text className="text-green-700 text-sm">{successMessage}</Text>
+              </View>
+            )}
 
             {step === 'request' ? (
               /* Request Step */
               <View className="space-y-6">
                 <View>
-                  <Text className="text-gray-700 font-medium mb-2">Phone Number</Text>
+                  <Text className="text-gray-700 font-medium my-2">Email Address</Text>
                   <TextInput
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="Enter your phone number"
-                    keyboardType="phone-pad"
-                    textContentType="telephoneNumber"
-                    autoComplete="tel"
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Enter your email address"
+                    keyboardType="email-address"
+                    textContentType="emailAddress"
+                    autoComplete="email"
                     className="border border-gray-300 rounded-lg px-4 py-3 text-base"
                     autoCapitalize="none"
                   />
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => {}}
-                  disabled={false}
-                  className={`bg-blue-500 rounded-lg py-4 ${false ? 'opacity-50' : ''}`}
+                  onPress={handleForgotPassword}
+                  disabled={isLoading}
+                  className={`bg-blue-500 rounded-lg py-4 my-5 ${isLoading ? 'opacity-50' : ''}`}
                 >
                   <Text className="text-white text-center font-semibold text-base">
-                    {false ? 'Sending...' : 'Send Verification Code'}
+                    {isLoading ? 'Sending...' : 'Send Reset Link'}
                   </Text>
                 </TouchableOpacity>
 
@@ -75,20 +181,19 @@ export const ForgotPasswordScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
             ) : (
-              /* Verify Step */
+              /* Reset Password Step */
               <View className="space-y-6">
                 <View>
-                  <Text className="text-gray-700 font-medium mb-2">Verification Code</Text>
+                  <Text className="text-gray-700 font-medium mb-2">Reset Token</Text>
                   <TextInput
-                    value={otp}
-                    onChangeText={setOtp}
-                    placeholder="Enter 6-digit code"
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    className="border border-gray-300 rounded-lg px-4 py-3 text-lg text-center"
+                    value={resetToken}
+                    onChangeText={setResetToken}
+                    placeholder="Enter reset token from email"
+                    className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+                    autoCapitalize="none"
                   />
                   <Text className="text-gray-500 text-sm mt-2">
-                    Code sent to {phone}
+                    Token sent to {email}
                   </Text>
                 </View>
 
@@ -139,21 +244,21 @@ export const ForgotPasswordScreen: React.FC = () => {
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => {}}
-                  disabled={false}
-                  className={`bg-blue-500 rounded-lg py-4 ${false ? 'opacity-50' : ''}`}
+                  onPress={handleResetPassword}
+                  disabled={isLoading}
+                  className={`bg-blue-500 rounded-lg py-4 ${isLoading ? 'opacity-50' : ''}`}
                 >
                   <Text className="text-white text-center font-semibold text-base">
-                    {false ? 'Resetting...' : 'Reset Password'}
+                    {isLoading ? 'Resetting...' : 'Reset Password'}
                   </Text>
                 </TouchableOpacity>
 
                 <View className="flex-row justify-center space-x-4">
-                  <TouchableOpacity onPress={() => {}}>
-                    <Text className="text-blue-500 font-medium">Resend Code</Text>
+                  <TouchableOpacity onPress={handleForgotPassword}>
+                    <Text className="text-blue-500 font-medium">Resend Email</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => setStep('request')}>
-                    <Text className="text-gray-500 font-medium">Change Number</Text>
+                    <Text className="text-gray-500 font-medium">Change Email</Text>
                   </TouchableOpacity>
                 </View>
               </View>

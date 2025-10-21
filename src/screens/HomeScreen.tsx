@@ -4,6 +4,8 @@ import { useAppSelector } from '../store/hooks';
 import { CarBookingModal } from '../components/CarBookingModal';
 import { CarpetBookingModal } from '../components/CarpetBookingModal';
 import { BookingFormData, CarpetBookingFormData } from '../types/booking';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
 export const HomeScreen: React.FC = () => {
   const { user } = useAppSelector((state: any) => state.auth);
@@ -49,8 +51,8 @@ export const HomeScreen: React.FC = () => {
   };
 
   const quickActions = [
-    { title: 'Car Services', icon: '🚗', color: 'bg-blue-500' },
-    { title: 'Carpet Services', icon: '🧹', color: 'bg-green-500' },
+    { title: 'Car Services', icon: 'car', iconType: 'FontAwesome', color: 'bg-blue-500' },
+    { title: 'Carpet Services', icon: 'magic', iconType: 'FontAwesome', color: 'bg-green-500' },
   ];
 
   const stats = [
@@ -63,7 +65,7 @@ export const HomeScreen: React.FC = () => {
   return (
     <ScrollView className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="bg-white px-6 py-8">
+      <View className="bg-white px-6 py-8 pt-16">
         <Text className="text-2xl font-bold text-gray-900 mb-2">
           Welcome back, {user?.name || 'Manager'}!
         </Text>
@@ -104,7 +106,11 @@ export const HomeScreen: React.FC = () => {
             >
               <View className="bg-white rounded-xl p-6 shadow-sm">
                 <View className={`w-12 h-12 ${action.color} rounded-full items-center justify-center mb-3 mx-auto`}>
-                  <Text className="text-2xl">{action.icon}</Text>
+                  {action.iconType === 'FontAwesome' ? (
+                    <Icon name={action.icon} size={24} color="white" />
+                  ) : (
+                    <MaterialIcon name={action.icon} size={24} color="white" />
+                  )}
                 </View>
                 <Text className="text-sm font-medium text-gray-900 text-center">
                   {action.title}

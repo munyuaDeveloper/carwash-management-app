@@ -11,11 +11,47 @@ export interface ServiceType {
 }
 
 export interface Attendant {
-  id: string;
+  _id: string;
   name: string;
-  isAvailable: boolean;
+  email: string;
+  role: 'attendant' | 'admin';
+  photo?: string;
+  isAvailable?: boolean; // This will be determined locally or from API
+  createdAt: string;
+  updatedAt: string;
 }
 
+// API Response Types based on the API documentation
+export interface ApiBooking {
+  _id: string;
+  carRegistrationNumber?: string;
+  phoneNumber?: string;
+  color?: string;
+  attendant: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  amount: number;
+  serviceType?: 'full wash' | 'half wash';
+  vehicleType?: string;
+  category: 'vehicle' | 'carpet';
+  paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
+  status: 'pending' | 'in progress' | 'completed' | 'cancelled';
+  attendantPaid: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiBookingsResponse {
+  status: string;
+  results: number;
+  data: {
+    bookings: ApiBooking[];
+  };
+}
+
+// Legacy interfaces for backward compatibility
 export interface CarBooking {
   id: string;
   carRegistration: string;
@@ -39,9 +75,7 @@ export interface BookingFormData {
 // Predefined car categories and service types
 export const CAR_CATEGORIES: CarCategory[] = [
   { id: 'sedan', name: 'Sedan', basePrice: 250 },
-  { id: 'suv', name: 'SUV', basePrice: 250 },
-  { id: 'hatchback', name: 'Hatchback', basePrice: 250 },
-  { id: 'truck', name: 'Truck', basePrice: 1000 },
+  { id: 'truck', name: 'Truck', basePrice: 350 },
   { id: 'motorcycle', name: 'Motorcycle', basePrice: 100 },
 ];
 
@@ -50,10 +84,7 @@ export const SERVICE_TYPES: ServiceType[] = [
   { id: 'half_wash', name: 'Half Wash', multiplier: 0.5 },
 ];
 
-export const ATTENDANTS: Attendant[] = [
-  { id: 'john_doe', name: 'John Doe', isAvailable: true },
-  { id: 'jane_smith', name: 'Jane Smith', isAvailable: true },
-];
+
 
 // Carpet booking interfaces
 export interface CarpetBooking {
@@ -70,9 +101,7 @@ export interface CarpetBooking {
 }
 
 export interface CarpetBookingFormData {
-  customerName: string;
   phoneNumber: string;
-  carpetNumber: string;
   color: string;
   attendantId: string;
   amount: number;

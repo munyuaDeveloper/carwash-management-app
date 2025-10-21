@@ -1,9 +1,11 @@
 export interface User {
-  id: string;
-  phone: string;
-  role: 'owner' | 'manager' | 'attendant';
-  name?: string;
-  businessId?: string;
+  _id: string;
+  name: string;
+  email: string;
+  photo?: string;
+  role: 'admin' | 'attendant';
+  wallet?: any;
+  __v?: number;
 }
 
 export interface AuthState {
@@ -14,26 +16,25 @@ export interface AuthState {
 }
 
 export interface LoginCredentials {
-  phone: string;
+  email: string;
   password: string;
 }
 
 export interface SignupCredentials {
-  phone: string;
+  email: string;
   password: string;
+  passwordConfirm: string;
   name: string;
-  role: 'owner' | 'manager' | 'attendant';
-  businessId?: string;
+  role: 'admin' | 'attendant';
 }
 
-export interface PasswordResetRequest {
-  phone: string;
+export interface ForgotPasswordRequest {
+  email: string;
 }
 
-export interface PasswordResetConfirm {
-  phone: string;
-  otp: string;
-  newPassword: string;
+export interface ResetPasswordRequest {
+  password: string;
+  passwordConfirm: string;
 }
 
 export interface AuthContextType {
@@ -41,8 +42,8 @@ export interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   signup: (credentials: SignupCredentials) => Promise<void>;
   logout: () => Promise<void>;
-  resetPassword: (request: PasswordResetRequest) => Promise<void>;
-  confirmPasswordReset: (confirm: PasswordResetConfirm) => Promise<void>;
+  forgotPassword: (request: ForgotPasswordRequest) => Promise<void>;
+  resetPassword: (token: string, request: ResetPasswordRequest) => Promise<void>;
   enableBiometric: () => Promise<void>;
   disableBiometric: () => Promise<void>;
   authenticateWithBiometric: () => Promise<void>;
