@@ -12,6 +12,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTheme } from '../contexts/ThemeContext';
+import { useThemeStyles } from '../utils/themeUtils';
 import { RootState, AppDispatch } from '../store';
 import { bookingApi } from '../services/apiAxios';
 import { fetchAttendants } from '../store/slices/attendantSlice';
@@ -42,6 +44,8 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const { token } = useSelector((state: RootState) => state.auth);
   const { attendants, isLoading: attendantsLoading } = useSelector((state: RootState) => state.attendants);
+  const { theme, isDark } = useTheme();
+  const themeStyles = useThemeStyles();
   const [formData, setFormData] = useState<BookingFormData>({
     carRegistration: '',
     phoneNumber: '',
@@ -158,14 +162,16 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-white"
+        style={[themeStyles.surface, { flex: 1 }]}
       >
         {/* Header */}
-        <View className="px-6 py-4 border-b border-gray-200 bg-white">
-          <View className="flex-row items-center">
-           
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-gray-900 text-center">
+        <View style={[
+          themeStyles.surface,
+          { paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }
+        ]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={[themeStyles.text, { fontSize: 20, fontWeight: 'bold', textAlign: 'center' }]}>
                 Create a new car wash booking
               </Text>
             </View>
@@ -173,19 +179,24 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
         </View>
 
         <ScrollView
-          className="flex-1"
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="px-6 py-4">
+          <View style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
             {/* Car Registration */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Car Registration Number *
               </Text>
               <TextInput
-                className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900 bg-white"
+                style={[
+                  themeStyles.input,
+                  { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
+                  { borderColor: theme.inputBorder }
+                ]}
                 placeholder="e.g., KCA 123A"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={formData.carRegistration}
                 onChangeText={(text) =>
                   setFormData(prev => ({ ...prev, carRegistration: text.toUpperCase() }))
@@ -195,14 +206,18 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
             </View>
 
             {/* Phone Number */}
-
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Phone Number
               </Text>
               <TextInput
-                className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900 bg-white"
+                style={[
+                  themeStyles.input,
+                  { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
+                  { borderColor: theme.inputBorder }
+                ]}
                 placeholder="e.g., 0712345678"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={formData.phoneNumber}
                 onChangeText={(text) =>
                   setFormData(prev => ({ ...prev, phoneNumber: text }))
@@ -212,27 +227,29 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
             </View>
 
             {/* Car Category */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Car Category *
               </Text>
-              <View className="flex-row flex-wrap -mx-1">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
                 {CAR_CATEGORIES.map((category) => (
                   <TouchableOpacity
                     key={category.id}
-                    className={`px-3 py-2 m-1 rounded-full border ${formData.categoryId === category.id
-                      ? 'bg-blue-500 border-blue-500'
-                      : 'bg-white border-gray-300'
-                      }`}
+                    style={[
+                      { paddingHorizontal: 12, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                      formData.categoryId === category.id
+                        ? { backgroundColor: theme.primary, borderColor: theme.primary }
+                        : { backgroundColor: theme.surface, borderColor: theme.inputBorder }
+                    ]}
                     onPress={() => handleCategoryChange(category.id)}
                     activeOpacity={0.7}
                   >
-                    <Text
-                      className={`text-sm font-medium ${formData.categoryId === category.id
-                        ? 'text-white'
-                        : 'text-gray-700'
-                        }`}
-                    >
+                    <Text style={[
+                      { fontSize: 14, fontWeight: '500' },
+                      formData.categoryId === category.id
+                        ? { color: theme.textInverse }
+                        : { color: theme.text }
+                    ]}>
                       {category.name}
                     </Text>
                   </TouchableOpacity>
@@ -241,27 +258,29 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
             </View>
 
             {/* Service Type */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Service Type *
               </Text>
-              <View className="flex-row flex-wrap -mx-1">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
                 {SERVICE_TYPES.map((service) => (
                   <TouchableOpacity
                     key={service.id}
-                    className={`px-4 py-2 m-1 rounded-full border ${formData.serviceTypeId === service.id
-                      ? 'bg-green-500 border-green-500'
-                      : 'bg-white border-gray-300'
-                      }`}
+                    style={[
+                      { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                      formData.serviceTypeId === service.id
+                        ? { backgroundColor: theme.secondary, borderColor: theme.secondary }
+                        : { backgroundColor: theme.surface, borderColor: theme.inputBorder }
+                    ]}
                     onPress={() => handleServiceTypeChange(service.id)}
                     activeOpacity={0.7}
                   >
-                    <Text
-                      className={`text-sm font-medium ${formData.serviceTypeId === service.id
-                        ? 'text-white'
-                        : 'text-gray-700'
-                        }`}
-                    >
+                    <Text style={[
+                      { fontSize: 14, fontWeight: '500' },
+                      formData.serviceTypeId === service.id
+                        ? { color: theme.textInverse }
+                        : { color: theme.text }
+                    ]}>
                       {service.name}
                     </Text>
                   </TouchableOpacity>
@@ -270,42 +289,50 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
             </View>
 
             {/* Attendant Selection */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Select Attendant *
               </Text>
               {attendantsLoading ? (
-                <View className="flex-row items-center justify-center py-4">
-                  <ActivityIndicator size="small" color="#3B82F6" />
-                  <Text className="text-gray-500 ml-2">Loading attendants...</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16 }}>
+                  <ActivityIndicator size="small" color={theme.primary} />
+                  <Text style={[themeStyles.textTertiary, { marginLeft: 8 }]}>
+                    Loading attendants...
+                  </Text>
                 </View>
               ) : attendants.length > 0 ? (
-                <View className="flex-row flex-wrap -mx-1">
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
                   {attendants.map((attendant) => {
                     const isSelected = formData.attendantId === attendant._id;
                     const isAvailable = attendant.isAvailable !== false; // Default to true if not set
 
-                    const getButtonClass = () => {
-                      if (isSelected) return 'bg-purple-500 border-purple-500';
-                      if (isAvailable) return 'bg-white border-gray-300';
-                      return 'bg-gray-100 border-gray-200';
+                    const getButtonStyle = () => {
+                      if (isSelected) return { backgroundColor: theme.primary, borderColor: theme.primary };
+                      if (isAvailable) return { backgroundColor: theme.surface, borderColor: theme.inputBorder };
+                      return { backgroundColor: theme.surfaceTertiary, borderColor: theme.borderLight };
                     };
 
-                    const getTextClass = () => {
-                      if (isSelected) return 'text-white';
-                      if (isAvailable) return 'text-gray-700';
-                      return 'text-gray-400';
+                    const getTextStyle = () => {
+                      if (isSelected) return { color: theme.textInverse };
+                      if (isAvailable) return { color: theme.text };
+                      return { color: theme.textTertiary };
                     };
 
                     return (
                       <TouchableOpacity
                         key={attendant._id}
-                        className={`px-4 py-2 m-1 rounded-full border ${getButtonClass()}`}
+                        style={[
+                          { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                          getButtonStyle()
+                        ]}
                         onPress={() => isAvailable && setFormData(prev => ({ ...prev, attendantId: attendant._id }))}
                         disabled={!isAvailable}
                         activeOpacity={isAvailable ? 0.7 : 1}
                       >
-                        <Text className={`text-sm font-medium ${getTextClass()}`}>
+                        <Text style={[
+                          { fontSize: 14, fontWeight: '500' },
+                          getTextStyle()
+                        ]}>
                           {attendant.name}
                           {!isAvailable && ' (Unavailable)'}
                         </Text>
@@ -314,37 +341,41 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
                   })}
                 </View>
               ) : (
-                <View className="py-4">
-                  <Text className="text-gray-500 text-center">No attendants available</Text>
+                <View style={{ paddingVertical: 16 }}>
+                  <Text style={[themeStyles.textTertiary, { textAlign: 'center' }]}>
+                    No attendants available
+                  </Text>
                 </View>
               )}
             </View>
 
             {/* Payment Type Selection */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Payment Type *
               </Text>
-              <View className="flex-row flex-wrap -mx-1">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
                 {PAYMENT_TYPES.map((payment) => {
                   const isSelected = paymentType === payment.id;
 
                   return (
                     <TouchableOpacity
                       key={payment.id}
-                      className={`px-4 py-2 m-1 rounded-full border ${isSelected
-                        ? 'bg-orange-500 border-orange-500'
-                        : 'bg-white border-gray-300'
-                        }`}
+                      style={[
+                        { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                        isSelected
+                          ? { backgroundColor: theme.warning, borderColor: theme.warning }
+                          : { backgroundColor: theme.surface, borderColor: theme.inputBorder }
+                      ]}
                       onPress={() => setPaymentType(payment.id)}
                       activeOpacity={0.7}
                     >
-                      <Text
-                        className={`text-sm font-medium ${isSelected
-                          ? 'text-white'
-                          : 'text-gray-700'
-                          }`}
-                      >
+                      <Text style={[
+                        { fontSize: 14, fontWeight: '500' },
+                        isSelected
+                          ? { color: theme.textInverse }
+                          : { color: theme.text }
+                      ]}>
                         {payment.name}
                       </Text>
                     </TouchableOpacity>
@@ -352,20 +383,25 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
                 })}
               </View>
               {paymentType && (
-                <Text className="text-xs text-gray-500 mt-1">
+                <Text style={[themeStyles.textTertiary, { fontSize: 12, marginTop: 4 }]}>
                   {PAYMENT_TYPES.find(p => p.id === paymentType)?.description}
                 </Text>
               )}
             </View>
 
             {/* Amount Input */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Amount (KSh) *
               </Text>
               <TextInput
-                className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900 bg-white"
+                style={[
+                  themeStyles.input,
+                  { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
+                  { borderColor: theme.inputBorder }
+                ]}
                 placeholder="Enter amount"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={formData.amount > 0 ? formData.amount.toString() : ''}
                 onChangeText={(text) => {
                   const numericValue = parseInt(text) || 0;
@@ -374,7 +410,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
                 keyboardType="numeric"
               />
               {formData.categoryId && formData.serviceTypeId && (
-                <Text className="text-xs text-gray-500 mt-1">
+                <Text style={[themeStyles.textTertiary, { fontSize: 12, marginTop: 4 }]}>
                   Suggested: KSh {calculateSuggestedAmount(formData.categoryId, formData.serviceTypeId)}
                 </Text>
               )}
@@ -383,36 +419,55 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
         </ScrollView>
 
         {/* Action Buttons - Fixed at bottom */}
-        <View className="px-6 py-4 bg-white mb-5">
-          <View className="flex-row">
+        <View style={[
+          themeStyles.surface,
+          { paddingHorizontal: 24, paddingVertical: 16, marginBottom: 20 }
+        ]}>
+          <View style={{ flexDirection: 'row' }}>
             <TouchableOpacity
-              className="flex-1 py-4 px-4 border border-gray-300 rounded-lg bg-white mr-2"
+              style={[
+                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderWidth: 1, borderRadius: 8, marginRight: 8 },
+                { backgroundColor: theme.surface, borderColor: theme.inputBorder }
+              ]}
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <Text className="text-center font-medium text-gray-700">
+              <Text style={[
+                { textAlign: 'center', fontWeight: '500', fontSize: 16 },
+                { color: theme.text }
+              ]}>
                 Cancel
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className={`flex-1 py-4 px-4 rounded-lg ${formData.carRegistration && formData.categoryId && formData.serviceTypeId && formData.attendantId && paymentType && formData.amount > 0 && !isLoading
-                ? 'bg-blue-500'
-                : 'bg-gray-300'
-                }`}
+              style={[
+                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 8 },
+                formData.carRegistration && formData.categoryId && formData.serviceTypeId && formData.attendantId && paymentType && formData.amount > 0 && !isLoading
+                  ? { backgroundColor: theme.buttonPrimary }
+                  : { backgroundColor: theme.surfaceTertiary }
+              ]}
               onPress={handleSubmit}
               disabled={!formData.carRegistration || !formData.categoryId || !formData.serviceTypeId || !formData.attendantId || !paymentType || formData.amount <= 0 || isLoading}
               activeOpacity={0.7}
             >
               {isLoading ? (
-                <View className="flex-row items-center justify-center">
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                   <ActivityIndicator size="small" color="white" />
-                  <Text className="text-center font-medium text-white ml-2">
+                  <Text style={[
+                    { textAlign: 'center', fontWeight: '500', fontSize: 16, marginLeft: 8 },
+                    { color: theme.buttonPrimaryText }
+                  ]}>
                     Creating...
                   </Text>
                 </View>
               ) : (
-                <Text className="text-center font-medium text-white">
+                <Text style={[
+                  { textAlign: 'center', fontWeight: '500', fontSize: 16 },
+                  formData.carRegistration && formData.categoryId && formData.serviceTypeId && formData.attendantId && paymentType && formData.amount > 0 && !isLoading
+                    ? { color: theme.buttonPrimaryText }
+                    : { color: theme.textTertiary }
+                ]}>
                   Create Booking
                 </Text>
               )}

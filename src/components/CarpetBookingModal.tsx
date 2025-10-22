@@ -12,6 +12,8 @@ import {
   Alert,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTheme } from '../contexts/ThemeContext';
+import { useThemeStyles } from '../utils/themeUtils';
 import { RootState, AppDispatch } from '../store';
 import { fetchAttendants } from '../store/slices/attendantSlice';
 import { bookingApi } from '../services/apiAxios';
@@ -31,6 +33,8 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const { token } = useSelector((state: RootState) => state.auth);
   const { attendants, isLoading: attendantsLoading } = useSelector((state: RootState) => state.attendants);
+  const { theme, isDark } = useTheme();
+  const themeStyles = useThemeStyles();
   const [formData, setFormData] = useState<CarpetBookingFormData>({
     phoneNumber: '',
     color: '',
@@ -104,13 +108,16 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-white"
+        style={[themeStyles.surface, { flex: 1 }]}
       >
         {/* Header */}
-        <View className="px-6 py-4 border-b border-gray-200 bg-white">
-          <View className="flex-row items-center">
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-gray-900 text-center">
+        <View style={[
+          themeStyles.surface,
+          { paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }
+        ]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={[themeStyles.text, { fontSize: 20, fontWeight: 'bold', textAlign: 'center' }]}>
                 Create a new carpet booking
               </Text>
             </View>
@@ -118,19 +125,24 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
         </View>
 
         <ScrollView
-          className="flex-1"
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="px-6 py-4">
+          <View style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
             {/* Phone Number */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Phone Number *
               </Text>
               <TextInput
-                className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900 bg-white"
+                style={[
+                  themeStyles.input,
+                  { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
+                  { borderColor: theme.inputBorder }
+                ]}
                 placeholder="e.g., +254712345678"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={formData.phoneNumber}
                 onChangeText={(text) =>
                   setFormData(prev => ({ ...prev, phoneNumber: text }))
@@ -140,13 +152,18 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
             </View>
 
             {/* Carpet Color */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Carpet Color *
               </Text>
               <TextInput
-                className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900 bg-white"
+                style={[
+                  themeStyles.input,
+                  { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
+                  { borderColor: theme.inputBorder }
+                ]}
                 placeholder="e.g., Red, Blue, Green"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={formData.color}
                 onChangeText={(text) =>
                   setFormData(prev => ({ ...prev, color: text }))
@@ -156,42 +173,50 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
             </View>
 
             {/* Attendant Selection */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Select Attendant *
               </Text>
               {attendantsLoading ? (
-                <View className="flex-row items-center justify-center py-4">
-                  <ActivityIndicator size="small" color="#3B82F6" />
-                  <Text className="text-gray-500 ml-2">Loading attendants...</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16 }}>
+                  <ActivityIndicator size="small" color={theme.primary} />
+                  <Text style={[themeStyles.textTertiary, { marginLeft: 8 }]}>
+                    Loading attendants...
+                  </Text>
                 </View>
               ) : attendants.length > 0 ? (
-                <View className="flex-row flex-wrap -mx-1">
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
                   {attendants.map((attendant) => {
                     const isSelected = formData.attendantId === attendant._id;
                     const isAvailable = attendant.isAvailable !== false;
 
-                    const getButtonClass = () => {
-                      if (isSelected) return 'bg-purple-500 border-purple-500';
-                      if (isAvailable) return 'bg-white border-gray-300';
-                      return 'bg-gray-100 border-gray-200';
+                    const getButtonStyle = () => {
+                      if (isSelected) return { backgroundColor: theme.primary, borderColor: theme.primary };
+                      if (isAvailable) return { backgroundColor: theme.surface, borderColor: theme.inputBorder };
+                      return { backgroundColor: theme.surfaceTertiary, borderColor: theme.borderLight };
                     };
 
-                    const getTextClass = () => {
-                      if (isSelected) return 'text-white';
-                      if (isAvailable) return 'text-gray-700';
-                      return 'text-gray-400';
+                    const getTextStyle = () => {
+                      if (isSelected) return { color: theme.textInverse };
+                      if (isAvailable) return { color: theme.text };
+                      return { color: theme.textTertiary };
                     };
 
                     return (
                       <TouchableOpacity
                         key={attendant._id}
-                        className={`px-4 py-2 m-1 rounded-full border ${getButtonClass()}`}
+                        style={[
+                          { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                          getButtonStyle()
+                        ]}
                         onPress={() => isAvailable && setFormData(prev => ({ ...prev, attendantId: attendant._id }))}
                         disabled={!isAvailable}
                         activeOpacity={isAvailable ? 0.7 : 1}
                       >
-                        <Text className={`text-sm font-medium ${getTextClass()}`}>
+                        <Text style={[
+                          { fontSize: 14, fontWeight: '500' },
+                          getTextStyle()
+                        ]}>
                           {attendant.name}
                           {!isAvailable && ' (Unavailable)'}
                         </Text>
@@ -200,20 +225,27 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
                   })}
                 </View>
               ) : (
-                <View className="py-4">
-                  <Text className="text-gray-500 text-center">No attendants available</Text>
+                <View style={{ paddingVertical: 16 }}>
+                  <Text style={[themeStyles.textTertiary, { textAlign: 'center' }]}>
+                    No attendants available
+                  </Text>
                 </View>
               )}
             </View>
 
             {/* Amount */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
                 Amount (KSh) *
               </Text>
               <TextInput
-                className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900 bg-white"
+                style={[
+                  themeStyles.input,
+                  { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
+                  { borderColor: theme.inputBorder }
+                ]}
                 placeholder="Enter amount"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={formData.amount > 0 ? formData.amount.toString() : ''}
                 onChangeText={(text) => {
                   const numericValue = parseFloat(text) || 0;
@@ -225,11 +257,17 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
 
             {/* Amount Display */}
             {formData.amount > 0 && (
-              <View className="mb-6 p-4 bg-gray-50 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
-                <Text className="text-sm font-medium text-gray-700 mb-1">
+              <View style={[
+                { marginBottom: 24, padding: 16, borderRadius: 8 },
+                { backgroundColor: theme.surfaceSecondary }
+              ]}>
+                <Text style={[themeStyles.text, { fontSize: 14, fontWeight: '500', marginBottom: 4 }]}>
                   Total Amount
                 </Text>
-                <Text className="text-2xl font-bold text-green-600">
+                <Text style={[
+                  { fontSize: 24, fontWeight: 'bold' },
+                  { color: theme.success }
+                ]}>
                   KSh {formData.amount.toLocaleString()}
                 </Text>
               </View>
@@ -238,36 +276,55 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
         </ScrollView>
 
         {/* Action Buttons - Fixed at bottom */}
-        <View className="px-6 py-4 bg-white mb-5">
-          <View className="flex-row">
+        <View style={[
+          themeStyles.surface,
+          { paddingHorizontal: 24, paddingVertical: 16, marginBottom: 20 }
+        ]}>
+          <View style={{ flexDirection: 'row' }}>
             <TouchableOpacity
-              className="flex-1 py-4 px-3 border border-gray-300 rounded-lg bg-white mr-3"
+              style={[
+                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderWidth: 1, borderRadius: 8, marginRight: 12 },
+                { backgroundColor: theme.surface, borderColor: theme.inputBorder }
+              ]}
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <Text className="text-center font-medium text-gray-700">
+              <Text style={[
+                { textAlign: 'center', fontWeight: '500', fontSize: 16 },
+                { color: theme.text }
+              ]}>
                 Cancel
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className={`flex-1 py-4 px-3 rounded-lg ${isFormValid && !isLoading
-                ? 'bg-blue-500'
-                : 'bg-gray-300'
-                }`}
+              style={[
+                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 8 },
+                isFormValid && !isLoading
+                  ? { backgroundColor: theme.buttonPrimary }
+                  : { backgroundColor: theme.surfaceTertiary }
+              ]}
               onPress={handleSubmit}
               disabled={!isFormValid || isLoading}
               activeOpacity={0.7}
             >
               {isLoading ? (
-                <View className="flex-row items-center justify-center">
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                   <ActivityIndicator size="small" color="white" />
-                  <Text className="text-center font-medium text-white ml-2">
+                  <Text style={[
+                    { textAlign: 'center', fontWeight: '500', fontSize: 16, marginLeft: 8 },
+                    { color: theme.buttonPrimaryText }
+                  ]}>
                     Creating...
                   </Text>
                 </View>
               ) : (
-                <Text className="text-center font-medium text-white">
+                <Text style={[
+                  { textAlign: 'center', fontWeight: '500', fontSize: 16 },
+                  isFormValid && !isLoading
+                    ? { color: theme.buttonPrimaryText }
+                    : { color: theme.textTertiary }
+                ]}>
                   Create Booking
                 </Text>
               )}

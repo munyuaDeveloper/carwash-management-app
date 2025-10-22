@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useThemeStyles } from '../../utils/themeUtils';
 import { login, clearError } from '../../store/slices/authSlice';
 import { RootState, AppDispatch } from '../../store';
 
@@ -19,6 +21,8 @@ export const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { theme, isDark } = useTheme();
+  const themeStyles = useThemeStyles();
 
   const [email, setEmail] = useState('munyuapeter07@gmail.com');
   const [password, setPassword] = useState('123456');
@@ -94,76 +98,113 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={[themeStyles.surface, { flex: 1 }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
-        <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-          <View className="flex-1 px-8 py-12 pt-16">
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={[themeStyles.surface, { flex: 1, paddingHorizontal: 32, paddingVertical: 48, paddingTop: 64 }]}>
             {/* Header */}
-            <View className="mb-12">
-              <Text className="text-3xl font-bold text-gray-900 mb-2">
+            <View style={{ marginBottom: 48 }}>
+              <Text style={[themeStyles.text, { fontSize: 32, fontWeight: 'bold', marginBottom: 8 }]}>
                 Welcome Back
               </Text>
-              <Text className="text-gray-600 text-base">
+              <Text style={[themeStyles.textSecondary, { fontSize: 16 }]}>
                 Sign in to your account
               </Text>
             </View>
 
             {/* Form */}
-            <View className="space-y-6">
+            <View style={{ gap: 24 }}>
               {/* Email Input */}
               <View>
-                <Text className="text-gray-700 font-medium mb-2">Email Address</Text>
+                <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
+                  Email Address
+                </Text>
                 <TextInput
                   value={email}
                   onChangeText={handleEmailChange}
                   placeholder="Enter your email address"
+                  placeholderTextColor={theme.inputPlaceholder}
                   keyboardType="email-address"
                   textContentType="emailAddress"
                   autoComplete="email"
-                  className={`border rounded-lg px-4 py-3 text-base ${emailError ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
                   autoCapitalize="none"
+                  style={[
+                    themeStyles.input,
+                    { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
+                    emailError ? { borderColor: theme.error, backgroundColor: theme.errorLight } : { borderColor: theme.inputBorder }
+                  ]}
                 />
                 {emailError && (
-                  <Text className="text-red-500 text-sm mt-1">{emailError}</Text>
+                  <Text style={[
+                    { fontSize: 14, marginTop: 4 },
+                    { color: theme.error }
+                  ]}>
+                    {emailError}
+                  </Text>
                 )}
               </View>
 
               {/* Password Input */}
               <View>
-                <Text className="text-gray-700 font-medium my-2">Password</Text>
-                <View className="relative">
+                <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginVertical: 8 }]}>
+                  Password
+                </Text>
+                <View style={{ position: 'relative' }}>
                   <TextInput
                     value={password}
                     onChangeText={handlePasswordChange}
                     placeholder="Enter your password"
+                    placeholderTextColor={theme.inputPlaceholder}
                     secureTextEntry={!showPassword}
                     textContentType="password"
                     autoComplete="current-password"
-                    className={`border rounded-lg px-4 py-3 text-base pr-12 ${passwordError ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
+                    style={[
+                      themeStyles.input,
+                      {
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        paddingRight: 48
+                      },
+                      passwordError ? { borderColor: theme.error, backgroundColor: theme.errorLight } : { borderColor: theme.inputBorder }
+                    ]}
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3"
+                    style={{ position: 'absolute', right: 12, top: 12 }}
+                    activeOpacity={0.7}
                   >
-                    <Text className="text-blue-500 font-medium">
+                    <Text style={[
+                      { fontSize: 14, fontWeight: '500' },
+                      { color: theme.primary }
+                    ]}>
                       {showPassword ? 'Hide' : 'Show'}
                     </Text>
                   </TouchableOpacity>
                 </View>
                 {passwordError && (
-                  <Text className="text-red-500 text-sm mt-1">{passwordError}</Text>
+                  <Text style={[
+                    { fontSize: 14, marginTop: 4 },
+                    { color: theme.error }
+                  ]}>
+                    {passwordError}
+                  </Text>
                 )}
               </View>
 
               {/* Error Message */}
               {error && (
-                <View className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <Text className="text-red-600 text-sm font-medium">
+                <View style={[
+                  { backgroundColor: theme.errorLight, borderWidth: 1, borderColor: theme.error, borderRadius: 8, padding: 12 }
+                ]}>
+                  <Text style={[
+                    { fontSize: 14, fontWeight: '500' },
+                    { color: theme.error }
+                  ]}>
                     {error.includes('Network')
                       ? 'Network error. Please check your connection and try again.'
                       : error.includes('401') || error.includes('Invalid')
@@ -177,22 +218,40 @@ export const LoginScreen: React.FC = () => {
               )}
 
               {/* Forgot Password */}
-              <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword' as never)} className="self-end my-5" activeOpacity={0.7}>
-                <Text className="text-blue-500 font-medium">Forgot Password?</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ForgotPassword' as never)}
+                style={{ alignSelf: 'flex-end', marginVertical: 20 }}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  { fontSize: 16, fontWeight: '500' },
+                  { color: theme.primary }
+                ]}>
+                  Forgot Password?
+                </Text>
               </TouchableOpacity>
 
               {/* Login Button */}
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={isLoading}
-                className={`bg-blue-500 rounded-lg py-4 ${isLoading ? 'opacity-50' : ''}`}
+                style={[
+                  { borderRadius: 8, paddingVertical: 16, opacity: isLoading ? 0.5 : 1 },
+                  { backgroundColor: theme.buttonPrimary }
+                ]}
                 activeOpacity={0.7}
               >
-                <View className="flex-row items-center justify-center">
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                   {isLoading && (
-                    <View className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    <View style={{
+                      width: 16, height: 16, borderWidth: 2, borderColor: 'white', borderTopColor: 'transparent',
+                      borderRadius: 8, marginRight: 8
+                    }} />
                   )}
-                  <Text className="text-white text-center font-semibold text-base">
+                  <Text style={[
+                    { textAlign: 'center', fontWeight: '600', fontSize: 16 },
+                    { color: theme.buttonPrimaryText }
+                  ]}>
                     {isLoading ? 'Signing In...' : 'Sign In'}
                   </Text>
                 </View>
