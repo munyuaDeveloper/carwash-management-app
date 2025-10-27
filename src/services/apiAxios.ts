@@ -247,6 +247,7 @@ export const bookingApi = {
     vehicleType: string;
     category: 'vehicle';
     paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
+    status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
   }, token: string) => {
     return apiRequest(API_ENDPOINTS.CREATE_BOOKING, {
       method: 'POST',
@@ -262,6 +263,7 @@ export const bookingApi = {
     amount: number;
     category: 'carpet';
     paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
+    status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
   }, token: string) => {
     return apiRequest(API_ENDPOINTS.CREATE_BOOKING, {
       method: 'POST',

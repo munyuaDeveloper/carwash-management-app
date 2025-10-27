@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  TouchableHighlight,
   TextInput,
   Modal,
   KeyboardAvoidingView,
@@ -70,7 +71,8 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
         attendant: formData.attendantId,
         amount: formData.amount,
         category: 'carpet' as const,
-        paymentType: 'attendant_cash' as const, // Default payment type for carpet bookings
+        paymentType: 'admin_till' as const, // Default payment type for carpet bookings
+        status: 'pending' as const, // Set status as pending for new carpet bookings
       };
 
       const response = await bookingApi.createCarpetBooking(bookingData, token);
@@ -206,7 +208,7 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
                       <TouchableOpacity
                         key={attendant._id}
                         style={[
-                          { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                          { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1, zIndex: 1 },
                           getButtonStyle()
                         ]}
                         onPress={() => isAvailable && setFormData(prev => ({ ...prev, attendantId: attendant._id }))}
@@ -283,7 +285,7 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
           <View style={{ flexDirection: 'row' }}>
             <TouchableOpacity
               style={[
-                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderWidth: 1, borderRadius: 8, marginRight: 12 },
+                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderWidth: 1, borderRadius: 8, marginRight: 12, zIndex: 1 },
                 { backgroundColor: theme.surface, borderColor: theme.inputBorder }
               ]}
               onPress={onClose}
@@ -299,7 +301,7 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
 
             <TouchableOpacity
               style={[
-                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 8 },
+                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 8, zIndex: 1 },
                 isFormValid && !isLoading
                   ? { backgroundColor: theme.buttonPrimary }
                   : { backgroundColor: theme.surfaceTertiary }

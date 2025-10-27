@@ -66,6 +66,7 @@ export interface VehicleBookingRequest {
   vehicleType: string;
   category: 'vehicle';
   paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
+  status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
 }
 
 export interface CarpetBookingRequest {
@@ -75,6 +76,7 @@ export interface CarpetBookingRequest {
   amount: number;
   category: 'carpet';
   paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
+  status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
 }
 
 export interface Booking {

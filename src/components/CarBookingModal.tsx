@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  TouchableHighlight,
   TextInput,
   Modal,
   KeyboardAvoidingView,
@@ -123,6 +124,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
         vehicleType: category.name,
         category: 'vehicle' as const,
         paymentType: paymentType as 'attendant_cash' | 'admin_cash' | 'admin_till',
+        status: 'pending' as const, // Set status as pending for new vehicle bookings
       };
 
       const response = await bookingApi.createVehicleBooking(bookingData, token);
@@ -236,7 +238,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
                   <TouchableOpacity
                     key={category.id}
                     style={[
-                      { paddingHorizontal: 12, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                      { paddingHorizontal: 12, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1, zIndex: 1 },
                       formData.categoryId === category.id
                         ? { backgroundColor: theme.primary, borderColor: theme.primary }
                         : { backgroundColor: theme.surface, borderColor: theme.inputBorder }
@@ -267,7 +269,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
                   <TouchableOpacity
                     key={service.id}
                     style={[
-                      { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                      { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1, zIndex: 1 },
                       formData.serviceTypeId === service.id
                         ? { backgroundColor: theme.secondary, borderColor: theme.secondary }
                         : { backgroundColor: theme.surface, borderColor: theme.inputBorder }
@@ -322,7 +324,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
                       <TouchableOpacity
                         key={attendant._id}
                         style={[
-                          { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                          { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1, zIndex: 1 },
                           getButtonStyle()
                         ]}
                         onPress={() => isAvailable && setFormData(prev => ({ ...prev, attendantId: attendant._id }))}
@@ -362,7 +364,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
                     <TouchableOpacity
                       key={payment.id}
                       style={[
-                        { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1 },
+                        { paddingHorizontal: 16, paddingVertical: 8, margin: 4, borderRadius: 20, borderWidth: 1, zIndex: 1 },
                         isSelected
                           ? { backgroundColor: theme.warning, borderColor: theme.warning }
                           : { backgroundColor: theme.surface, borderColor: theme.inputBorder }
@@ -426,7 +428,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
           <View style={{ flexDirection: 'row' }}>
             <TouchableOpacity
               style={[
-                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderWidth: 1, borderRadius: 8, marginRight: 8 },
+                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderWidth: 1, borderRadius: 8, marginRight: 8, zIndex: 1 },
                 { backgroundColor: theme.surface, borderColor: theme.inputBorder }
               ]}
               onPress={onClose}
@@ -442,7 +444,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
 
             <TouchableOpacity
               style={[
-                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 8 },
+                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 8, zIndex: 1 },
                 formData.carRegistration && formData.categoryId && formData.serviceTypeId && formData.attendantId && paymentType && formData.amount > 0 && !isLoading
                   ? { backgroundColor: theme.buttonPrimary }
                   : { backgroundColor: theme.surfaceTertiary }

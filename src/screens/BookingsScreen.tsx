@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
 import { CarBookingModal } from '../components/CarBookingModal';
 import { CarpetBookingModal } from '../components/CarpetBookingModal';
+import { EditBookingModal } from '../components/EditBookingModal';
 import { BookingFormData, CarpetBookingFormData, ApiBooking } from '../types/booking';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
@@ -20,6 +21,8 @@ export const BookingsScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'car' | 'carpet'>('car');
   const [showCarModal, setShowCarModal] = useState(false);
   const [showCarpetModal, setShowCarpetModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<ApiBooking | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'today'>('today');
 
   // Fetch bookings on component mount and when filters change
@@ -126,6 +129,29 @@ export const BookingsScreen: React.FC = () => {
     console.log('Carpet booking submitted:', bookingData);
   };
 
+  const handleEditBooking = (booking: ApiBooking) => {
+    setSelectedBooking(booking);
+    setShowEditModal(true);
+  };
+
+  const handleBookingUpdated = () => {
+    // Refresh bookings list
+    if (token) {
+      const filters: any = {
+        sort: '-createdAt',
+        limit: 50,
+      };
+
+      if (activeTab === 'car') {
+        filters.category = 'vehicle';
+      } else {
+        filters.category = 'carpet';
+      }
+
+      dispatch(fetchBookings(filters));
+    }
+  };
+
   const renderBookingsList = () => {
     const filteredBookings = getFilteredBookings();
 
@@ -178,8 +204,8 @@ export const BookingsScreen: React.FC = () => {
                   elevation: 3,
                 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <View style={{ flex: 1 }}>
                         {activeTab === 'car' ? (
                           <>
                             <Text style={[themeStyles.textTertiary, { fontSize: 14 }]}>
@@ -209,22 +235,37 @@ export const BookingsScreen: React.FC = () => {
                         )}
                       </View>
                     </View>
-                    <View style={[
-                      { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-                      statusColor === 'bg-blue-100 text-blue-800' && { backgroundColor: theme.infoLight },
-                      statusColor === 'bg-green-100 text-green-800' && { backgroundColor: theme.successLight },
-                      statusColor === 'bg-yellow-100 text-yellow-800' && { backgroundColor: theme.warningLight },
-                      statusColor === 'bg-red-100 text-red-800' && { backgroundColor: theme.errorLight },
-                    ]}>
-                      <Text style={[
-                        { fontSize: 12, fontWeight: '500', textTransform: 'capitalize' },
-                        statusColor === 'bg-blue-100 text-blue-800' && { color: theme.info },
-                        statusColor === 'bg-green-100 text-green-800' && { color: theme.success },
-                        statusColor === 'bg-yellow-100 text-yellow-800' && { color: theme.warning },
-                        statusColor === 'bg-red-100 text-red-800' && { color: theme.error },
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TouchableOpacity
+                        onPress={() => handleEditBooking(booking)}
+                        style={{
+                          padding: 8,
+                          marginRight: 8,
+                          backgroundColor: theme.surface,
+                          borderRadius: 6,
+                          borderWidth: 1,
+                          borderColor: theme.border,
+                        }}
+                      >
+                        <MaterialIcon name="edit" size={16} color={theme.primary} />
+                      </TouchableOpacity>
+                      <View style={[
+                        { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+                        statusColor === 'bg-blue-100 text-blue-800' && { backgroundColor: theme.infoLight },
+                        statusColor === 'bg-green-100 text-green-800' && { backgroundColor: theme.successLight },
+                        statusColor === 'bg-yellow-100 text-yellow-800' && { backgroundColor: theme.warningLight },
+                        statusColor === 'bg-red-100 text-red-800' && { backgroundColor: theme.errorLight },
                       ]}>
-                        {booking.status}
-                      </Text>
+                        <Text style={[
+                          { fontSize: 12, fontWeight: '500', textTransform: 'capitalize' },
+                          statusColor === 'bg-blue-100 text-blue-800' && { color: theme.info },
+                          statusColor === 'bg-green-100 text-green-800' && { color: theme.success },
+                          statusColor === 'bg-yellow-100 text-yellow-800' && { color: theme.warning },
+                          statusColor === 'bg-red-100 text-red-800' && { color: theme.error },
+                        ]}>
+                          {booking.status}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
@@ -408,7 +449,7 @@ export const BookingsScreen: React.FC = () => {
           style={[
             {
               borderRadius: 12,
-              paddingVertical: 16,
+              paddingVertical: 12,
               paddingHorizontal: 24,
               backgroundColor: theme.buttonPrimary,
               shadowColor: theme.shadow,
@@ -447,6 +488,16 @@ export const BookingsScreen: React.FC = () => {
           setShowCarpetModal(false);
           // Refresh bookings list here if needed
         }}
+      />
+
+      <EditBookingModal
+        visible={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedBooking(null);
+        }}
+        booking={selectedBooking}
+        onBookingUpdated={handleBookingUpdated}
       />
     </ScrollView>
   );

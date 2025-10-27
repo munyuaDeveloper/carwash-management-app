@@ -97,6 +97,7 @@ export const createVehicleBooking = createAsyncThunk(
     vehicleType: string;
     category: 'vehicle';
     paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
+    status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
   }, { rejectWithValue, getState }) => {
     try {
       const state = getState() as RootState;
@@ -128,6 +129,7 @@ export const createCarpetBooking = createAsyncThunk(
     amount: number;
     category: 'carpet';
     paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
+    status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
   }, { rejectWithValue, getState }) => {
     try {
       const state = getState() as RootState;
