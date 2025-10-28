@@ -23,6 +23,7 @@
     "expo-dev-client": "~6.0.16",
     "expo-linear-gradient": "~15.0.7",
     "expo-local-authentication": "^17.0.7",
+    "expo-navigation-bar": "^5.0.9",
     "expo-secure-store": "^15.0.7",
     "expo-status-bar": "~3.0.8",
     "nativewind": "4.1.23",
