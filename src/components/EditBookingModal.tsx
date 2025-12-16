@@ -183,27 +183,7 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
             <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600' }]}>
               Edit Booking
             </Text>
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={isLoading}
-              style={[
-                {
-                  backgroundColor: theme.buttonPrimary,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  zIndex: 1,
-                },
-                isLoading && { opacity: 0.5 }
-              ]}
-            >
-              <Text style={[
-                { color: theme.buttonPrimaryText, fontWeight: '600' },
-                isLoading && { opacity: 0.5 }
-              ]}>
-                {isLoading ? 'Saving...' : 'Save'}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ width: 40 }} />
           </View>
         </View>
 
@@ -449,6 +429,42 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
             )}
           </View>
         </ScrollView>
+
+        {/* Save Button at Bottom */}
+        <View style={[
+          themeStyles.surface,
+          {
+            paddingHorizontal: 24,
+            paddingVertical: 16,
+            borderTopWidth: 1,
+            borderTopColor: theme.border,
+          }
+        ]}>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={isLoading}
+            style={[
+              {
+                backgroundColor: theme.buttonPrimary,
+                paddingVertical: 16,
+                borderRadius: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+              isLoading && { opacity: 0.5 }
+            ]}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={theme.buttonPrimaryText} />
+            ) : (
+              <Text style={[
+                { color: theme.buttonPrimaryText, fontWeight: '600', fontSize: 16 }
+              ]}>
+                Save Changes
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </Modal>
   );
