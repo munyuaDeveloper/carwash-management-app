@@ -27,6 +27,7 @@ export interface ApiBooking {
 export interface ApiBookingsResponse {
   status: string;
   results: number;
+  total?: number;
   data: {
     bookings: ApiBooking[];
   };
@@ -46,20 +47,26 @@ export interface BookingFilters {
 interface BookingState {
   bookings: ApiBooking[];
   isLoading: boolean;
+  isLoadingMore: boolean;
   error: string | null;
   filters: BookingFilters;
   totalResults: number;
+  currentPage: number;
+  hasMore: boolean;
 }
 
 const initialState: BookingState = {
   bookings: [],
   isLoading: false,
+  isLoadingMore: false,
   error: null,
   filters: {
     sort: '-createdAt', // Default to newest first
     limit: 50,
   },
   totalResults: 0,
+  currentPage: 1,
+  hasMore: true,
 };
 
 // Async thunks
@@ -80,7 +87,10 @@ export const fetchBookings = createAsyncThunk(
         return rejectWithValue(response.error || 'Failed to fetch bookings');
       }
 
-      return response.data;
+      return {
+        data: response.data,
+        filters,
+      };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Network error occurred');
     }
@@ -218,19 +228,41 @@ const bookingSlice = createSlice({
   extraReducers: (builder) => {
     // Fetch bookings
     builder
-      .addCase(fetchBookings.pending, (state) => {
-        state.isLoading = true;
+      .addCase(fetchBookings.pending, (state, action) => {
+        const pendingFilters = (action.meta.arg || {}) as BookingFilters;
+        const isLoadMore = !!pendingFilters.page && pendingFilters.page > 1;
+
+        state.isLoading = !isLoadMore;
+        state.isLoadingMore = isLoadMore;
         state.error = null;
       })
       .addCase(fetchBookings.fulfilled, (state, action) => {
         state.isLoading = false;
-        const payload = action.payload as ApiBookingsResponse;
-        state.bookings = payload.data.bookings;
-        state.totalResults = payload.results;
+        state.isLoadingMore = false;
+
+        const {
+          data,
+          filters,
+        } = action.payload as { data: ApiBookingsResponse; filters: BookingFilters };
+
+        const page = filters.page ?? 1;
+        const newBookings = data.data.bookings;
+        const isLoadMore = page > 1;
+
+        if (isLoadMore) {
+          state.bookings = [...state.bookings, ...newBookings];
+        } else {
+          state.bookings = newBookings;
+        }
+        state.totalResults = data.total ?? data.results;
+        state.currentPage = page;
+        state.filters = { ...state.filters, ...filters };
+        state.hasMore = state.bookings.length < state.totalResults;
         state.error = null;
       })
       .addCase(fetchBookings.rejected, (state, action) => {
         state.isLoading = false;
+        state.isLoadingMore = false;
         state.error = action.payload as string;
       });
 

@@ -13,7 +13,15 @@ import { fetchBookings, setFilters, clearError } from '../store/slices/bookingSl
 
 export const BookingsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { bookings, isLoading, error } = useAppSelector((state) => state.bookings);
+  const {
+    bookings,
+    isLoading,
+    isLoadingMore,
+    error,
+    hasMore,
+    currentPage,
+    totalResults,
+  } = useAppSelector((state) => state.bookings);
   const { token } = useAppSelector((state) => state.auth);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
@@ -25,12 +33,32 @@ export const BookingsScreen: React.FC = () => {
   const [selectedBooking, setSelectedBooking] = useState<ApiBooking | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'today'>('today');
 
+  const BOOKINGS_PAGE_LIMIT = 10;
+
+  const getBaseFilters = (): any => ({
+    sort: '-createdAt',
+    limit: BOOKINGS_PAGE_LIMIT,
+  });
+
+  const getTodayDateRange = () => {
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return {
+      gte: startOfDay.toISOString(),
+      lte: endOfDay.toISOString(),
+    };
+  };
+
   // Fetch bookings on component mount and when filters change
   useEffect(() => {
     if (token) {
       const filters: any = {
-        sort: '-createdAt',
-        limit: 50,
+        ...getBaseFilters(),
+        page: 1,
       };
 
       // Add category filter based on active tab
@@ -40,8 +68,10 @@ export const BookingsScreen: React.FC = () => {
         filters.category = 'carpet';
       }
 
-      // For today filter, we'll get all bookings and filter client-side
-      // You could also implement server-side date filtering
+      // Apply server-side date filter for today's bookings
+      if (activeFilter === 'today') {
+        filters.createdAt = getTodayDateRange();
+      }
 
       dispatch(fetchBookings(filters));
     }
@@ -72,15 +102,6 @@ export const BookingsScreen: React.FC = () => {
       filteredBookings = filteredBookings.filter(booking => booking.category === 'vehicle');
     } else {
       filteredBookings = filteredBookings.filter(booking => booking.category === 'carpet');
-    }
-
-    // Apply date filter
-    if (activeFilter === 'today') {
-      // Filter for today's bookings (client-side filtering)
-      const today = new Date().toISOString().split('T')[0];
-      filteredBookings = filteredBookings.filter(booking =>
-        booking.createdAt.startsWith(today)
-      );
     }
 
     return filteredBookings;
@@ -121,14 +142,6 @@ export const BookingsScreen: React.FC = () => {
   };
 
 
-  const handleCarBookingSubmit = (bookingData: BookingFormData) => {
-    console.log('Car booking submitted:', bookingData);
-  };
-
-  const handleCarpetBookingSubmit = (bookingData: CarpetBookingFormData) => {
-    console.log('Carpet booking submitted:', bookingData);
-  };
-
   const handleEditBooking = (booking: ApiBooking) => {
     setSelectedBooking(booking);
     setShowEditModal(true);
@@ -138,8 +151,8 @@ export const BookingsScreen: React.FC = () => {
     // Refresh bookings list
     if (token) {
       const filters: any = {
-        sort: '-createdAt',
-        limit: 50,
+        ...getBaseFilters(),
+        page: 1,
       };
 
       if (activeTab === 'car') {
@@ -148,8 +161,36 @@ export const BookingsScreen: React.FC = () => {
         filters.category = 'carpet';
       }
 
+      if (activeFilter === 'today') {
+        filters.createdAt = getTodayDateRange();
+      }
+
       dispatch(fetchBookings(filters));
     }
+  };
+
+  const handleLoadMore = () => {
+    if (!token || !hasMore || isLoadingMore) {
+      return;
+    }
+
+    const nextPage = currentPage + 1;
+    const filters: any = {
+      ...getBaseFilters(),
+      page: nextPage,
+    };
+
+    if (activeTab === 'car') {
+      filters.category = 'vehicle';
+    } else {
+      filters.category = 'carpet';
+    }
+
+    if (activeFilter === 'today') {
+      filters.createdAt = getTodayDateRange();
+    }
+
+    dispatch(fetchBookings(filters));
   };
 
   const renderBookingsList = () => {
@@ -168,13 +209,38 @@ export const BookingsScreen: React.FC = () => {
 
     if (filteredBookings.length === 0) {
       return (
-        <View style={{ paddingHorizontal: 24, paddingVertical: 32 }}>
+        <View style={{ paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' }}>
           <Text style={[themeStyles.textTertiary, { textAlign: 'center', fontSize: 18 }]}>
             No {activeTab === 'car' ? 'car wash' : 'carpet cleaning'} bookings found
           </Text>
-          <Text style={[themeStyles.textTertiary, { textAlign: 'center', marginTop: 8 }]}>
+          <Text style={[themeStyles.textTertiary, { textAlign: 'center', marginTop: 8, marginBottom: 24 }]}>
             Try adjusting your filters or add a new booking
           </Text>
+          <TouchableOpacity
+            onPress={() => (activeTab === 'car' ? setShowCarModal(true) : setShowCarpetModal(true))}
+            activeOpacity={0.8}
+            style={[
+              {
+                borderRadius: 8,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                backgroundColor: theme.buttonPrimary,
+                shadowColor: theme.shadow,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDark ? 0.3 : 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+                alignSelf: 'center',
+              }
+            ]}
+          >
+            <Text style={[
+              { fontSize: 14, fontWeight: '600', textAlign: 'center' },
+              { color: theme.buttonPrimaryText }
+            ]}>
+              Add New {activeTab === 'car' ? 'Car' : 'Carpet'} Booking
+            </Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -313,6 +379,58 @@ export const BookingsScreen: React.FC = () => {
             </View>
           );
         })}
+
+        {hasMore && (
+          <View style={{ marginTop: 16, marginBottom: 8 }}>
+            <TouchableOpacity
+              onPress={handleLoadMore}
+              disabled={isLoadingMore}
+              activeOpacity={0.8}
+              style={[
+                {
+                  borderRadius: 999,
+                  paddingVertical: 10,
+                  paddingHorizontal: 24,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  alignSelf: 'center',
+                  backgroundColor: theme.buttonPrimary,
+                  flexDirection: 'row',
+                },
+                isLoadingMore && { opacity: 0.7 },
+              ]}
+            >
+              {isLoadingMore && (
+                <ActivityIndicator
+                  size="small"
+                  color={theme.buttonPrimaryText}
+                  style={{ marginRight: 8 }}
+                />
+              )}
+              <Text
+                style={[
+                  { fontSize: 14, fontWeight: '600' },
+                  { color: theme.buttonPrimaryText },
+                ]}
+              >
+                {isLoadingMore ? 'Loading more...' : 'Load more bookings'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text
+              style={[
+                themeStyles.textTertiary,
+                {
+                  fontSize: 12,
+                  textAlign: 'center',
+                  marginTop: 8,
+                },
+              ]}
+            >
+              Showing {filteredBookings.length} of {totalResults} bookings
+            </Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -439,34 +557,6 @@ export const BookingsScreen: React.FC = () => {
           </Text>
         </View>
         {renderBookingsList()}
-      </View>
-
-      {/* Add New Booking Button */}
-      <View style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
-        <TouchableOpacity
-          onPress={() => (activeTab === 'car' ? setShowCarModal(true) : setShowCarpetModal(true))}
-          activeOpacity={0.8}
-          style={[
-            {
-              borderRadius: 12,
-              paddingVertical: 12,
-              paddingHorizontal: 24,
-              backgroundColor: theme.buttonPrimary,
-              shadowColor: theme.shadow,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: isDark ? 0.3 : 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-            }
-          ]}
-        >
-          <Text style={[
-            { fontSize: 16, fontWeight: '600', textAlign: 'center' },
-            { color: theme.buttonPrimaryText }
-          ]}>
-            Add New {activeTab === 'car' ? 'Car' : 'Carpet'} Booking
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <View style={{ height: 32 }} />

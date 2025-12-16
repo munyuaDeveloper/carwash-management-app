@@ -23,14 +23,6 @@ axiosInstance.interceptors.request.use(
     // For now, we'll handle token injection in the API calls
     console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
 
-    // Add timestamp to prevent caching issues
-    if (config.method === 'get') {
-      config.params = {
-        ...config.params,
-        _t: Date.now(),
-      };
-    }
-
     return config;
   },
   (error: AxiosError) => {
