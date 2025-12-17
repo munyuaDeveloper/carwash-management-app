@@ -50,6 +50,7 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
     serviceType: 'full wash' as 'full wash' | 'half wash',
     paymentType: 'attendant_cash' as 'attendant_cash' | 'admin_cash' | 'admin_till',
     status: 'pending' as 'pending' | 'in progress' | 'completed' | 'cancelled',
+    note: '',
   });
 
   // Load attendants when modal opens
@@ -71,6 +72,7 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
         serviceType: booking.serviceType || 'full wash',
         paymentType: booking.paymentType,
         status: booking.status,
+        note: booking.note || '',
       });
     }
   }, [booking]);
@@ -129,6 +131,11 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
       } else {
         updateData.phoneNumber = formData.phoneNumber.trim();
         updateData.color = formData.color.trim();
+      }
+
+      // Add note if provided
+      if (formData.note?.trim()) {
+        updateData.note = formData.note.trim();
       }
 
       await dispatch(updateBooking({ id: booking._id, bookingData: updateData })).unwrap();
@@ -417,6 +424,35 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
                 </View>
               </>
             )}
+
+            {/* Note Field */}
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
+                Note (Optional)
+              </Text>
+              <TextInput
+                value={formData.note}
+                onChangeText={(value) => handleInputChange('note', value)}
+                placeholder="Add any additional notes about this booking..."
+                multiline
+                numberOfLines={4}
+                style={[
+                  themeStyles.input,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    fontSize: 16,
+                    minHeight: 80,
+                    textAlignVertical: 'top',
+                  }
+                ]}
+                placeholderTextColor={theme.textTertiary}
+              />
+            </View>
 
             {/* Loading indicator */}
             {isLoading && (

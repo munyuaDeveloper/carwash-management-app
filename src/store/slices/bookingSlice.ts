@@ -42,6 +42,8 @@ export interface BookingFilters {
   fields?: string;
   status?: string;
   category?: 'vehicle' | 'carpet';
+  attendant?: string;
+  search?: string;
 }
 
 interface BookingState {

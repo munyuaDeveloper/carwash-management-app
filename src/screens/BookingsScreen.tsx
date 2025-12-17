@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
 import { CarBookingModal } from '../components/CarBookingModal';
@@ -10,6 +10,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchBookings, setFilters, clearError } from '../store/slices/bookingSlice';
+import { fetchAttendants } from '../store/slices/attendantSlice';
 
 export const BookingsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -23,6 +24,7 @@ export const BookingsScreen: React.FC = () => {
     totalResults,
   } = useAppSelector((state) => state.bookings);
   const { token } = useAppSelector((state) => state.auth);
+  const { attendants, isLoading: attendantsLoading } = useAppSelector((state) => state.attendants);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
 
@@ -32,6 +34,9 @@ export const BookingsScreen: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<ApiBooking | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'today'>('today');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAttendantId, setSelectedAttendantId] = useState<string>('all');
+  const [showAttendantDropdown, setShowAttendantDropdown] = useState(false);
 
   const BOOKINGS_PAGE_LIMIT = 10;
 
@@ -53,9 +58,18 @@ export const BookingsScreen: React.FC = () => {
     };
   };
 
-  // Fetch bookings on component mount and when filters change
+  // Fetch attendants on component mount
   useEffect(() => {
-    if (token) {
+    if (token && attendants.length === 0) {
+      dispatch(fetchAttendants(token));
+    }
+  }, [dispatch, token, attendants.length]);
+
+  // Fetch bookings when filters change (with debounced search)
+  useEffect(() => {
+    if (!token) return;
+
+    const timeoutId = setTimeout(() => {
       const filters: any = {
         ...getBaseFilters(),
         page: 1,
@@ -73,9 +87,21 @@ export const BookingsScreen: React.FC = () => {
         filters.createdAt = getTodayDateRange();
       }
 
+      // Add attendant filter - set the attendant parameter with the selected attendant ID
+      if (selectedAttendantId !== 'all') {
+        filters.attendant = selectedAttendantId; // This will be sent as ?attendant=ATTENDANT_ID to the API
+      }
+
+      // Add search query
+      if (searchQuery.trim()) {
+        filters.search = searchQuery.trim();
+      }
+
       dispatch(fetchBookings(filters));
-    }
-  }, [dispatch, token, activeTab, activeFilter]);
+    }, searchQuery.trim() ? 500 : 0); // 500ms debounce for search, immediate for other filters
+
+    return () => clearTimeout(timeoutId);
+  }, [dispatch, token, activeTab, activeFilter, selectedAttendantId, searchQuery]);
 
   // Clear error when component unmounts
   useEffect(() => {
@@ -93,18 +119,9 @@ export const BookingsScreen: React.FC = () => {
     }
   }, [error, dispatch]);
 
-  // Filter bookings based on active tab and filter
+  // No client-side filtering needed - API handles all filtering
   const getFilteredBookings = (): ApiBooking[] => {
-    let filteredBookings = bookings;
-
-    // Filter by category (vehicle vs carpet)
-    if (activeTab === 'car') {
-      filteredBookings = filteredBookings.filter(booking => booking.category === 'vehicle');
-    } else {
-      filteredBookings = filteredBookings.filter(booking => booking.category === 'carpet');
-    }
-
-    return filteredBookings;
+    return bookings;
   };
 
   // Helper function to format date and time
@@ -148,7 +165,7 @@ export const BookingsScreen: React.FC = () => {
   };
 
   const handleBookingUpdated = () => {
-    // Refresh bookings list
+    // Refresh bookings list with current filters
     if (token) {
       const filters: any = {
         ...getBaseFilters(),
@@ -163,6 +180,14 @@ export const BookingsScreen: React.FC = () => {
 
       if (activeFilter === 'today') {
         filters.createdAt = getTodayDateRange();
+      }
+
+      if (selectedAttendantId !== 'all') {
+        filters.attendant = selectedAttendantId;
+      }
+
+      if (searchQuery.trim()) {
+        filters.search = searchQuery.trim();
       }
 
       dispatch(fetchBookings(filters));
@@ -188,6 +213,14 @@ export const BookingsScreen: React.FC = () => {
 
     if (activeFilter === 'today') {
       filters.createdAt = getTodayDateRange();
+    }
+
+    if (selectedAttendantId !== 'all') {
+      filters.attendant = selectedAttendantId;
+    }
+
+    if (searchQuery.trim()) {
+      filters.search = searchQuery.trim();
     }
 
     dispatch(fetchBookings(filters));
@@ -549,11 +582,167 @@ export const BookingsScreen: React.FC = () => {
         </View>
       </View>
 
+      {/* Search and Attendant Filter */}
+      <View style={{ paddingHorizontal: 24, paddingVertical: 8 }}>
+        {/* Search Input */}
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: theme.surfaceSecondary,
+          borderRadius: 8,
+          paddingHorizontal: 12,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: theme.border,
+        }}>
+          <Icon name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+          <TextInput
+            style={[
+              { flex: 1, paddingVertical: 10, fontSize: 16 },
+              themeStyles.text
+            ]}
+            placeholder="Search by attendant name..."
+            placeholderTextColor={theme.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={{ padding: 4 }}
+            >
+              <Icon name="times-circle" size={18} color={theme.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Attendant Filter Dropdown */}
+        <View style={{ position: 'relative' }}>
+          <Pressable
+            onPress={() => {
+              if (!attendantsLoading) {
+                setShowAttendantDropdown(!showAttendantDropdown);
+              }
+            }}
+            style={[
+              {
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderWidth: 1,
+                borderColor: theme.border,
+              },
+              { backgroundColor: attendantsLoading ? theme.surfaceTertiary : theme.surfaceSecondary }
+            ]}
+            disabled={attendantsLoading}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <Icon name="user" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+              <Text style={[themeStyles.text, { fontSize: 16 }]}>
+                {attendantsLoading
+                  ? 'Loading...'
+                  : selectedAttendantId === 'all'
+                    ? 'All Attendants'
+                    : attendants.find(a => a._id === selectedAttendantId)?.name || 'All Attendants'
+                }
+              </Text>
+            </View>
+            <Icon
+              name={showAttendantDropdown ? "chevron-up" : "chevron-down"}
+              size={14}
+              color={theme.textSecondary}
+            />
+          </Pressable>
+
+          {/* Dropdown Options */}
+          {showAttendantDropdown && !attendantsLoading && (
+            <View style={[
+              {
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                zIndex: 50,
+                backgroundColor: theme.surface,
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderRadius: 8,
+                marginTop: 4,
+                maxHeight: 200,
+                shadowColor: theme.shadow,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDark ? 0.3 : 0.1,
+                shadowRadius: 4,
+                elevation: 5,
+              }
+            ]}>
+              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                <Pressable
+                  onPress={() => {
+                    setSelectedAttendantId('all');
+                    setShowAttendantDropdown(false);
+                  }}
+                  style={[
+                    {
+                      paddingHorizontal: 12,
+                      paddingVertical: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.borderLight,
+                    },
+                    selectedAttendantId === 'all' && { backgroundColor: theme.primaryLight }
+                  ]}
+                >
+                  <Text style={[
+                    { fontSize: 16 },
+                    selectedAttendantId === 'all' ? { color: theme.primary, fontWeight: '500' } : { color: theme.text }
+                  ]}>
+                    All Attendants
+                  </Text>
+                </Pressable>
+                {attendants.map((attendant) => (
+                  <Pressable
+                    key={attendant._id}
+                    onPress={() => {
+                      setSelectedAttendantId(attendant._id);
+                      setShowAttendantDropdown(false);
+                    }}
+                    style={[
+                      {
+                        paddingHorizontal: 12,
+                        paddingVertical: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: theme.borderLight,
+                      },
+                      selectedAttendantId === attendant._id && { backgroundColor: theme.primaryLight }
+                    ]}
+                  >
+                    <Text style={[
+                      { fontSize: 16 },
+                      selectedAttendantId === attendant._id ? { color: theme.primary, fontWeight: '500' } : { color: theme.text }
+                    ]}>
+                      {attendant.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </View>
+
       {/* Bookings List */}
       <View style={{ marginBottom: 24 }}>
         <View style={{ paddingHorizontal: 24, paddingVertical: 8 }}>
           <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600', marginBottom: 8 }]}>
             {activeTab === 'car' ? 'Car Wash' : 'Carpet Cleaning'} Bookings
+            {(searchQuery.trim() || selectedAttendantId !== 'all') && (
+              <Text style={[themeStyles.textSecondary, { fontSize: 14, fontWeight: '400' }]}>
+                {' '}({totalResults} {totalResults === 1 ? 'result' : 'results'})
+              </Text>
+            )}
           </Text>
         </View>
         {renderBookingsList()}
@@ -589,6 +778,21 @@ export const BookingsScreen: React.FC = () => {
         booking={selectedBooking}
         onBookingUpdated={handleBookingUpdated}
       />
+
+      {/* Overlay to close dropdown when clicking outside */}
+      {showAttendantDropdown && (
+        <Pressable
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 40,
+          }}
+          onPress={() => setShowAttendantDropdown(false)}
+        />
+      )}
     </ScrollView>
   );
 };

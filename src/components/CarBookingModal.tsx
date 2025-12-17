@@ -43,7 +43,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
   onBookingCreated,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { token } = useSelector((state: RootState) => state.auth);
+  const { token, user } = useSelector((state: RootState) => state.auth);
   const { attendants, isLoading: attendantsLoading } = useSelector((state: RootState) => state.attendants);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
@@ -54,6 +54,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
     serviceTypeId: '',
     attendantId: '',
     amount: 0,
+    note: '',
   });
   const [paymentType, setPaymentType] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -124,7 +125,8 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
         vehicleType: category.name,
         category: 'vehicle' as const,
         paymentType: paymentType as 'attendant_cash' | 'admin_cash' | 'admin_till',
-        status: 'pending' as const, // Set status as pending for new vehicle bookings
+        status: 'in progress' as const, // Set status as in progress for new vehicle bookings
+        ...(formData.note && { note: formData.note }), // Include note if provided
       };
 
       const response = await bookingApi.createVehicleBooking(bookingData, token);
@@ -141,6 +143,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
         serviceTypeId: '',
         attendantId: '',
         amount: 0,
+        note: '',
       });
       setPaymentType('');
 
@@ -416,6 +419,28 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
                   Suggested: KSh {calculateSuggestedAmount(formData.categoryId, formData.serviceTypeId)}
                 </Text>
               )}
+            </View>
+
+            {/* Note Field */}
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
+                Note (Optional)
+              </Text>
+              <TextInput
+                style={[
+                  themeStyles.input,
+                  { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, minHeight: 80, textAlignVertical: 'top' },
+                  { borderColor: theme.inputBorder }
+                ]}
+                placeholder="Add any additional notes about this booking..."
+                placeholderTextColor={theme.inputPlaceholder}
+                value={formData.note || ''}
+                onChangeText={(text) =>
+                  setFormData(prev => ({ ...prev, note: text }))
+                }
+                multiline
+                numberOfLines={4}
+              />
             </View>
           </View>
         </ScrollView>

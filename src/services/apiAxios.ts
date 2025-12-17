@@ -218,6 +218,9 @@ export const bookingApi = {
     page?: number;
     limit?: number;
     fields?: string;
+    category?: 'vehicle' | 'carpet';
+    attendant?: string;
+    search?: string;
   }) => {
     const params: any = {};
 
@@ -230,6 +233,9 @@ export const bookingApi = {
       if (filters.page) params.page = filters.page;
       if (filters.limit) params.limit = filters.limit;
       if (filters.fields) params.fields = filters.fields;
+      if (filters.category) params.category = filters.category;
+      if (filters.attendant) params.attendant = filters.attendant;
+      if (filters.search) params.search = filters.search;
     }
 
     return apiRequest(API_ENDPOINTS.GET_ALL_BOOKINGS, {
@@ -248,6 +254,7 @@ export const bookingApi = {
     category: 'vehicle';
     paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
     status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
+    note?: string;
   }, token: string) => {
     return apiRequest(API_ENDPOINTS.CREATE_BOOKING, {
       method: 'POST',
@@ -264,6 +271,7 @@ export const bookingApi = {
     category: 'carpet';
     paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
     status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
+    note?: string;
   }, token: string) => {
     return apiRequest(API_ENDPOINTS.CREATE_BOOKING, {
       method: 'POST',

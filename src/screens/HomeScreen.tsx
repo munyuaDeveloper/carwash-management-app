@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useAppSelector } from '../store/hooks';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
@@ -8,13 +8,16 @@ import { CarpetBookingModal } from '../components/CarpetBookingModal';
 import { BookingFormData, CarpetBookingFormData } from '../types/booking';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import { statsApi, Stats } from '../services/apiEnhanced';
 
 export const HomeScreen: React.FC = () => {
-  const { user } = useAppSelector((state: any) => state.auth);
+  const { user, token } = useAppSelector((state: any) => state.auth);
   const { isDark } = useTheme();
   const themeStyles = useThemeStyles();
   const [isBookingSheetVisible, setIsBookingSheetVisible] = useState(false);
   const [isCarpetBookingSheetVisible, setIsCarpetBookingSheetVisible] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const handleCarServicesPress = () => {
     setIsBookingSheetVisible(true);
@@ -54,17 +57,62 @@ export const HomeScreen: React.FC = () => {
     // dispatch(addCarpetBooking(newCarpetBooking));
   };
 
+  // Fetch stats on component mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!token) return;
+
+      setIsLoadingStats(true);
+      try {
+        const response = await statsApi.getStats(token);
+        if (response.status === 'success' && response.data?.stats) {
+          setStats(response.data.stats);
+        } else {
+          console.error('Failed to fetch stats:', response.error);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [token]);
+
   const quickActions = [
     { title: 'Car Services', icon: 'car', iconType: 'FontAwesome', color: 'bg-blue-500' },
     { title: 'Carpet Services', icon: 'magic', iconType: 'FontAwesome', color: 'bg-green-500' },
   ];
 
-  const stats = [
-    { label: 'Today\'s Bookings', value: '12', color: 'text-blue-600' },
-    { label: 'Revenue Today', value: 'KSh 500', color: 'text-green-600' },
-    { label: 'Active Customers', value: '10', color: 'text-purple-600' },
-    { label: 'Pending Tasks', value: '3', color: 'text-orange-600' },
-  ];
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+    }).format(amount);
+  };
+
+  // Prepare stats for display
+  const displayStats = stats
+    ? [
+      {
+        label: 'Today\'s Bookings',
+        value: stats.todayTotalBookings.toString(),
+        color: 'text-blue-600',
+      },
+      {
+        label: 'Revenue Today',
+        value: formatCurrency(stats.todayRevenue),
+        color: 'text-green-600',
+      },
+      {
+        label: 'Total Revenue',
+        value: formatCurrency(stats.totalRevenue),
+        color: 'text-purple-600',
+      },
+    ]
+    : [];
 
   return (
     <ScrollView style={[themeStyles.container, { flex: 1 }]}>
@@ -83,26 +131,41 @@ export const HomeScreen: React.FC = () => {
         <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600', marginBottom: 16 }]}>
           Today's Overview
         </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 }}>
-          {stats.map((stat) => (
-            <View key={stat.label} style={{ width: '50%', paddingHorizontal: 8, marginBottom: 16 }}>
-              <View style={[themeStyles.card, { padding: 16 }]}>
-                <Text style={[
-                  { fontSize: 24, fontWeight: 'bold' },
-                  stat.color === 'text-blue-600' && { color: isDark ? '#60a5fa' : '#2563eb' },
-                  stat.color === 'text-green-600' && { color: isDark ? '#34d399' : '#059669' },
-                  stat.color === 'text-purple-600' && { color: isDark ? '#a78bfa' : '#7c3aed' },
-                  stat.color === 'text-orange-600' && { color: isDark ? '#fb923c' : '#ea580c' },
-                ]}>
-                  {stat.value}
-                </Text>
-                <Text style={[themeStyles.textSecondary, { fontSize: 14, marginTop: 4 }]}>
-                  {stat.label}
-                </Text>
+        {isLoadingStats ? (
+          <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+            <ActivityIndicator size="large" color={isDark ? '#60a5fa' : '#2563eb'} />
+            <Text style={[themeStyles.textSecondary, { marginTop: 12, fontSize: 14 }]}>
+              Loading stats...
+            </Text>
+          </View>
+        ) : displayStats.length > 0 ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 }}>
+            {displayStats.map((stat) => (
+              <View key={stat.label} style={{ width: '50%', paddingHorizontal: 8, marginBottom: 16 }}>
+                <View style={[themeStyles.card, { padding: 16 }]}>
+                  <Text style={[
+                    { fontSize: 24, fontWeight: 'bold' },
+                    stat.color === 'text-blue-600' && { color: isDark ? '#60a5fa' : '#2563eb' },
+                    stat.color === 'text-green-600' && { color: isDark ? '#34d399' : '#059669' },
+                    stat.color === 'text-purple-600' && { color: isDark ? '#a78bfa' : '#7c3aed' },
+                    stat.color === 'text-orange-600' && { color: isDark ? '#fb923c' : '#ea580c' },
+                  ]}>
+                    {stat.value}
+                  </Text>
+                  <Text style={[themeStyles.textSecondary, { fontSize: 14, marginTop: 4 }]}>
+                    {stat.label}
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[themeStyles.card, { padding: 16, alignItems: 'center' }]}>
+            <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>
+              No stats available
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Quick Actions */}

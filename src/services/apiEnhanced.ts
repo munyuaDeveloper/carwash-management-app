@@ -25,6 +25,13 @@ import type {
   DailySummary,
 } from './api';
 
+// Stats types
+export interface Stats {
+  totalRevenue: number;
+  todayRevenue: number;
+  todayTotalBookings: number;
+}
+
 // Re-export types
 export type {
   ApiResponse,
@@ -463,6 +470,18 @@ export const walletApi = {
 
   getBookingDetails: async (bookingId: string, token: string): Promise<ApiResponse<{ booking: Booking }>> => {
     return apiRequest(`${API_ENDPOINTS.GET_BOOKING_DETAILS}/${bookingId}`, {
+      method: 'GET',
+      token,
+    });
+  },
+};
+
+/**
+ * Stats API calls
+ */
+export const statsApi = {
+  getStats: async (token: string): Promise<ApiResponse<{ stats: Stats }>> => {
+    return apiRequest(API_ENDPOINTS.GET_STATS, {
       method: 'GET',
       token,
     });

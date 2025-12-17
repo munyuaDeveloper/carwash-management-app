@@ -57,6 +57,9 @@ export const API_ENDPOINTS = {
   REBUILD_WALLET_BALANCE: `${API_VERSION}/wallets`,
   GET_ATTENDANT_BOOKINGS: `${API_VERSION}/wallets`,
   GET_BOOKING_DETAILS: `${API_VERSION}/wallets/bookings`,
+
+  // Stats endpoints
+  GET_STATS: `${API_VERSION}/stats`,
 } as const;
 
 // Helper function to build full API URLs

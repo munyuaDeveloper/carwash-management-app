@@ -32,15 +32,17 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
   onBookingCreated,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { token } = useSelector((state: RootState) => state.auth);
+  const { token, user } = useSelector((state: RootState) => state.auth);
   const { attendants, isLoading: attendantsLoading } = useSelector((state: RootState) => state.attendants);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
+  const isAdmin = user?.role === 'admin';
   const [formData, setFormData] = useState<CarpetBookingFormData>({
     phoneNumber: '',
     color: '',
     attendantId: '',
     amount: 0,
+    note: '',
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -73,6 +75,7 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
         category: 'carpet' as const,
         paymentType: 'admin_till' as const, // Default payment type for carpet bookings
         status: 'pending' as const, // Set status as pending for new carpet bookings
+        ...(formData.note && { note: formData.note }), // Include note if provided
       };
 
       const response = await bookingApi.createCarpetBooking(bookingData, token);
@@ -87,6 +90,7 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
         color: '',
         attendantId: '',
         amount: 0,
+        note: '',
       });
 
       Alert.alert('Success', 'Carpet booking created successfully!');
@@ -272,6 +276,30 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
                 ]}>
                   KSh {formData.amount.toLocaleString()}
                 </Text>
+              </View>
+            )}
+
+            {/* Note Field (Admin Only) */}
+            {isAdmin && (
+              <View style={{ marginBottom: 24 }}>
+                <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500', marginBottom: 8 }]}>
+                  Note (Optional)
+                </Text>
+                <TextInput
+                  style={[
+                    themeStyles.input,
+                    { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, minHeight: 80, textAlignVertical: 'top' },
+                    { borderColor: theme.inputBorder }
+                  ]}
+                  placeholder="Add any additional notes about this booking..."
+                  placeholderTextColor={theme.inputPlaceholder}
+                  value={formData.note || ''}
+                  onChangeText={(text) =>
+                    setFormData(prev => ({ ...prev, note: text }))
+                  }
+                  multiline
+                  numberOfLines={4}
+                />
               </View>
             )}
           </View>

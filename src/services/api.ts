@@ -67,6 +67,7 @@ export interface VehicleBookingRequest {
   category: 'vehicle';
   paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
   status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
+  note?: string; // Optional note field for admin
 }
 
 export interface CarpetBookingRequest {
@@ -77,6 +78,7 @@ export interface CarpetBookingRequest {
   category: 'carpet';
   paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
   status?: 'pending' | 'in progress' | 'completed' | 'cancelled';
+  note?: string; // Optional note field for admin
 }
 
 export interface Booking {
@@ -96,6 +98,7 @@ export interface Booking {
   paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
   status: 'pending' | 'in progress' | 'completed' | 'cancelled';
   attendantPaid: boolean;
+  note?: string; // Optional note field
   createdAt: string;
   updatedAt: string;
 }
