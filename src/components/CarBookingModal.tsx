@@ -23,6 +23,8 @@ import {
   SERVICE_TYPES,
   BookingFormData,
 } from '../types/booking';
+import { showToast } from '../utils/toast';
+import { ThemeAwareToast } from './ThemeAwareToast';
 
 interface CarBookingModalProps {
   visible: boolean;
@@ -97,12 +99,12 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
 
   const handleSubmit = async () => {
     if (!formData.carRegistration || !formData.categoryId || !formData.serviceTypeId || !formData.attendantId || !paymentType || formData.amount <= 0) {
-      Alert.alert('Missing Information', 'Please fill in all required fields including a valid amount.');
+      showToast.error('Please fill in all required fields including a valid amount.', 'Missing Information');
       return;
     }
 
     if (!token) {
-      Alert.alert('Authentication Error', 'Please log in to create bookings.');
+      showToast.error('Please log in to create bookings.', 'Authentication Error');
       return;
     }
 
@@ -147,11 +149,14 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
       });
       setPaymentType('');
 
-      Alert.alert('Success', 'Booking created successfully!');
-      onBookingCreated?.();
-      onClose();
+      showToast.success('Booking created successfully!');
+      // Small delay to ensure toast is shown before modal closes
+      setTimeout(() => {
+        onBookingCreated?.();
+        onClose();
+      }, 100);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create booking. Please try again.');
+      showToast.error(error.message || 'Failed to create booking. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -500,6 +505,20 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
               )}
             </TouchableOpacity>
           </View>
+        </View>
+        {/* Toast rendered inside modal to appear above modal content */}
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: Platform.OS === 'android' ? 10000 : 9999,
+            elevation: Platform.OS === 'android' ? 1001 : 0,
+            pointerEvents: 'box-none',
+          }}
+        >
+          <ThemeAwareToast />
         </View>
       </KeyboardAvoidingView>
     </Modal>

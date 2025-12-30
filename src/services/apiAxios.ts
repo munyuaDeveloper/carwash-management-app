@@ -441,6 +441,22 @@ export const walletApi = {
       token,
     });
   },
+
+  adjustWalletBalance: async (
+    attendantId: string,
+    adjustmentData: {
+      amount: number;
+      type: string;
+      reason?: string;
+    },
+    token: string
+  ) => {
+    return apiRequest(`${API_ENDPOINTS.GET_ATTENDANT_WALLET}/${attendantId}/adjust`, {
+      method: 'PATCH',
+      data: adjustmentData,
+      token,
+    });
+  },
 };
 
 // Export the axios instance for direct use if needed

@@ -7,6 +7,7 @@ import './global.css';
 import { AppProvider } from './src/components/AppProvider';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { ThemeAwareStatusBar } from './src/components/ThemeAwareStatusBar';
+import { ThemeAwareToast } from './src/components/ThemeAwareToast';
 import { AppNavigator } from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
           <AppProvider>
             <AppNavigator />
             <ThemeAwareStatusBar />
+            <ThemeAwareToast />
           </AppProvider>
         </ThemeProvider>
       </SafeAreaProvider>

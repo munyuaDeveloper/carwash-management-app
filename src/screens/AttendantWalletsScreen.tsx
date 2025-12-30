@@ -19,7 +19,10 @@ import {
   fetchAllWallets,
   settleAttendantBalances,
   markAttendantPaid,
+  adjustWalletBalance,
 } from '../store/slices/walletSlice';
+import { AdjustBalanceModal } from '../components/AdjustBalanceModal';
+import { showToast } from '../utils/toast';
 
 export const AttendantWalletsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -44,6 +47,8 @@ export const AttendantWalletsScreen: React.FC = () => {
   const [showSettleModal, setShowSettleModal] = useState(false);
   const [selectedAttendantFilter, setSelectedAttendantFilter] = useState<string>('all');
   const [showAttendantDropdown, setShowAttendantDropdown] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState<{ _id: string; attendant: { _id: string; name: string } } | null>(null);
 
 
   // Add loading state for user data
@@ -85,7 +90,7 @@ export const AttendantWalletsScreen: React.FC = () => {
 
   const handleSettleBalances = async () => {
     if (selectedAttendants.length === 0) {
-      Alert.alert('Error', 'Please select at least one attendant to settle.');
+      showToast.error('Please select at least one attendant to settle.');
       return;
     }
 
@@ -95,7 +100,7 @@ export const AttendantWalletsScreen: React.FC = () => {
     );
 
     if (selectedUnpaidWallets.length === 0) {
-      Alert.alert('Error', 'Selected attendants have no unpaid balances to settle.');
+      showToast.error('Selected attendants have no unpaid balances to settle.');
       return;
     }
 
@@ -114,10 +119,10 @@ export const AttendantWalletsScreen: React.FC = () => {
               }));
               setSelectedAttendants([]);
               setShowSettleModal(false);
-              Alert.alert('Success', 'Attendant balances settled successfully.');
+              showToast.success('Attendant balances settled successfully.');
               await loadInitialData();
             } catch (error) {
-              Alert.alert('Error', 'Failed to settle balances. Please try again.');
+              showToast.error('Failed to settle balances. Please try again.');
             }
           },
         },
@@ -139,15 +144,43 @@ export const AttendantWalletsScreen: React.FC = () => {
                 attendantId,
                 token: token!
               }));
-              Alert.alert('Success', `${attendantName} marked as paid.`);
+              showToast.success(`${attendantName} marked as paid.`);
               await loadInitialData();
             } catch (error) {
-              Alert.alert('Error', 'Failed to mark as paid. Please try again.');
+              showToast.error('Failed to mark as paid. Please try again.');
             }
           },
         },
       ]
     );
+  };
+
+  const handleAdjustBalance = (wallet: { _id: string; attendant: { _id: string; name: string } }) => {
+    setSelectedWallet(wallet);
+    setShowAdjustModal(true);
+  };
+
+  const handleSubmitAdjustment = async (adjustmentData: { amount: number; type: string; reason?: string }) => {
+    if (!selectedWallet || !selectedWallet.attendant._id) return;
+
+    try {
+      await dispatch(adjustWalletBalance({
+        attendantId: selectedWallet.attendant._id,
+        adjustmentData,
+        token: token!
+      }));
+      showToast.success('Wallet balance adjusted successfully.');
+      setShowAdjustModal(false);
+      setSelectedWallet(null);
+      await loadInitialData();
+    } catch (error: any) {
+      throw error; // Let the modal handle the error display
+    }
+  };
+
+  const handleCloseAdjustModal = () => {
+    setShowAdjustModal(false);
+    setSelectedWallet(null);
   };
 
   const formatCurrency = (amount: number) => {
@@ -327,12 +360,23 @@ export const AttendantWalletsScreen: React.FC = () => {
 
             <View className="flex-row justify-end mt-3 space-x-2">
               <Pressable
-                onPress={() => !item.isPaid && handleMarkAsPaid(item.attendant._id, item.attendant.name)}
-                className={`px-3 py-2 rounded-lg ${item.isPaid ? 'bg-gray-400' : 'bg-green-600'}`}
-                disabled={item.isPaid}
+                onPress={() => handleAdjustBalance(item)}
+                style={[
+                  { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginRight: 8 },
+                  { backgroundColor: theme.primary }
+                ]}
+              >
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: '500' }}>
+                  Adjust Balance
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => !item.isPaid && item.balance !== 0 && handleMarkAsPaid(item.attendant._id, item.attendant.name)}
+                className={`px-3 py-2 rounded-lg ${item.isPaid || item.balance === 0 ? 'bg-gray-400' : 'bg-green-600'}`}
+                disabled={item.isPaid || item.balance === 0}
               >
                 <Text className="text-white text-sm font-medium">
-                  {item.isPaid ? 'Already Paid' : 'Mark Paid'}
+                  {item.isPaid ? 'Already Paid' : item.balance === 0 ? 'No Balance' : 'Mark Paid'}
                 </Text>
               </Pressable>
             </View>
@@ -402,7 +446,7 @@ export const AttendantWalletsScreen: React.FC = () => {
               {showAttendantDropdown && !allWalletsLoading && (
                 <View style={[
                   { position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 8, marginTop: 4, maxHeight: 192 },
-                  themeStyles.shadow
+                  { shadowColor: theme.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: isDark ? 0.3 : 0.1, shadowRadius: 4, elevation: 3 }
                 ]}>
                   <ScrollView style={{ maxHeight: 192 }}>
                     <Pressable
@@ -530,6 +574,15 @@ export const AttendantWalletsScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Adjust Balance Modal */}
+      <AdjustBalanceModal
+        visible={showAdjustModal}
+        wallet={selectedWallet}
+        onClose={handleCloseAdjustModal}
+        onSubmit={handleSubmitAdjustment}
+        formatCurrency={formatCurrency}
+      />
     </View>
   );
 };

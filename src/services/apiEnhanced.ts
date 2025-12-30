@@ -481,10 +481,38 @@ export const walletApi = {
  */
 export const statsApi = {
   getStats: async (token: string): Promise<ApiResponse<{ stats: Stats }>> => {
-    return apiRequest(API_ENDPOINTS.GET_STATS, {
+    const response = await apiRequest<any>(API_ENDPOINTS.GET_STATS, {
       method: 'GET',
       token,
     });
+
+    // Unwrap the server response structure
+    // Server returns: { status: "success", data: { stats: {...} } }
+    // apiRequest wraps it again, so we get: { status: "success", data: { status: "success", data: { stats: {...} } } }
+    // We need to extract just the stats part
+    if (response.status === 'success' && response.data) {
+      const serverData = response.data;
+      // Check if the server response has a nested data structure
+      if (serverData.data && serverData.data.stats) {
+        return {
+          status: 'success',
+          data: { stats: serverData.data.stats },
+        };
+      }
+      // If it's already unwrapped (response.data.stats exists directly)
+      if (serverData.stats) {
+        return {
+          status: 'success',
+          data: { stats: serverData.stats },
+        };
+      }
+    }
+
+    // Return error response if unwrapping failed
+    return {
+      status: 'error',
+      error: 'Failed to parse stats response',
+    };
   },
 };
 

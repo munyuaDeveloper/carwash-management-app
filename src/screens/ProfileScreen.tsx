@@ -6,6 +6,7 @@ import { useThemeStyles } from '../utils/themeUtils';
 import { logout } from '../store/slices/authSlice';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import { showToast } from '../utils/toast';
 
 export const ProfileScreen: React.FC = () => {
   const { user, isLoading } = useAppSelector((state: any) => state.auth);
@@ -37,7 +38,7 @@ export const ProfileScreen: React.FC = () => {
               // Navigation will be handled by the auth state change
             } catch (error) {
               console.error('Logout failed:', error);
-              Alert.alert('Error', 'Failed to logout. Please try again.');
+              showToast.error('Failed to logout. Please try again.');
             }
           },
         },

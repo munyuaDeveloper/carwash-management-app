@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useAppSelector } from '../store/hooks';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
@@ -9,6 +9,17 @@ import { BookingFormData, CarpetBookingFormData } from '../types/booking';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { statsApi, Stats } from '../services/apiEnhanced';
+
+// Conditionally import react-icons only for web
+let SiCcleaner: any = null;
+if (Platform.OS === 'web') {
+  try {
+    const ReactIcons = require('react-icons/si');
+    SiCcleaner = ReactIcons.SiCcleaner;
+  } catch (e) {
+    console.warn('react-icons not available');
+  }
+}
 
 export const HomeScreen: React.FC = () => {
   const { user, token } = useAppSelector((state: any) => state.auth);
@@ -57,32 +68,33 @@ export const HomeScreen: React.FC = () => {
     // dispatch(addCarpetBooking(newCarpetBooking));
   };
 
+  // Fetch stats function
+  const fetchStats = async () => {
+    if (!token) return;
+
+    setIsLoadingStats(true);
+    try {
+      const response = await statsApi.getStats(token);
+      if (response.status === 'success' && response.data?.stats) {
+        setStats(response.data.stats);
+      } else {
+        console.error('Failed to fetch stats:', response.error);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
   // Fetch stats on component mount
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!token) return;
-
-      setIsLoadingStats(true);
-      try {
-        const response = await statsApi.getStats(token);
-        if (response.status === 'success' && response.data?.stats) {
-          setStats(response.data.stats);
-        } else {
-          console.error('Failed to fetch stats:', response.error);
-        }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setIsLoadingStats(false);
-      }
-    };
-
     fetchStats();
   }, [token]);
 
   const quickActions = [
     { title: 'Car Services', icon: 'car', iconType: 'FontAwesome', color: 'bg-blue-500' },
-    { title: 'Carpet Services', icon: 'magic', iconType: 'FontAwesome', color: 'bg-green-500' },
+    { title: 'Carpet Services', icon: 'vacuum', iconType: Platform.OS === 'web' ? 'ReactIcons' : 'MaterialIcons', color: 'bg-green-500' },
   ];
 
   // Format currency for display
@@ -128,9 +140,24 @@ export const HomeScreen: React.FC = () => {
 
       {/* Stats Cards */}
       <View style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
-        <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600', marginBottom: 16 }]}>
-          Today's Overview
-        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600' }]}>
+            Today's Overview
+          </Text>
+          <TouchableOpacity
+            onPress={fetchStats}
+            disabled={isLoadingStats}
+            activeOpacity={0.7}
+            style={{ padding: 8 }}
+          >
+            <MaterialIcon
+              name="refresh"
+              size={24}
+              color={isDark ? '#60a5fa' : '#2563eb'}
+              style={isLoadingStats ? { opacity: 0.5 } : {}}
+            />
+          </TouchableOpacity>
+        </View>
         {isLoadingStats ? (
           <View style={{ alignItems: 'center', paddingVertical: 32 }}>
             <ActivityIndicator size="large" color={isDark ? '#60a5fa' : '#2563eb'} />
@@ -139,21 +166,21 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </View>
         ) : displayStats.length > 0 ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 }}>
-            {displayStats.map((stat) => (
-              <View key={stat.label} style={{ width: '50%', paddingHorizontal: 8, marginBottom: 16 }}>
+          <View>
+            {displayStats.map((stat, index) => (
+              <View key={stat.label} style={{ width: '100%', marginBottom: index < displayStats.length - 1 ? 16 : 0 }}>
                 <View style={[themeStyles.card, { padding: 16 }]}>
+                  <Text style={[themeStyles.textSecondary, { fontSize: 14, marginBottom: 8, textAlign: 'left' }]}>
+                    {stat.label}
+                  </Text>
                   <Text style={[
-                    { fontSize: 24, fontWeight: 'bold' },
+                    { fontSize: 24, fontWeight: 'bold', textAlign: 'center' },
                     stat.color === 'text-blue-600' && { color: isDark ? '#60a5fa' : '#2563eb' },
                     stat.color === 'text-green-600' && { color: isDark ? '#34d399' : '#059669' },
                     stat.color === 'text-purple-600' && { color: isDark ? '#a78bfa' : '#7c3aed' },
                     stat.color === 'text-orange-600' && { color: isDark ? '#fb923c' : '#ea580c' },
                   ]}>
                     {stat.value}
-                  </Text>
-                  <Text style={[themeStyles.textSecondary, { fontSize: 14, marginTop: 4 }]}>
-                    {stat.label}
                   </Text>
                 </View>
               </View>
@@ -189,8 +216,10 @@ export const HomeScreen: React.FC = () => {
                 ]}>
                   {action.iconType === 'FontAwesome' ? (
                     <Icon name={action.icon} size={24} color="white" />
+                  ) : action.iconType === 'ReactIcons' && SiCcleaner && action.icon === 'vacuum' ? (
+                    <SiCcleaner size={24} color="white" />
                   ) : (
-                    <MaterialIcon name={action.icon} size={24} color="white" />
+                    <MaterialIcon name={action.icon === 'vacuum' ? 'cleaning-services' : action.icon} size={24} color="white" />
                   )}
                 </View>
                 <Text style={[themeStyles.text, { fontSize: 14, fontWeight: '500', textAlign: 'center' }]}>

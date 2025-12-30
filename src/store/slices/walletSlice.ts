@@ -90,6 +90,34 @@ export const markAttendantPaid = createAsyncThunk(
   }
 );
 
+export const adjustWalletBalance = createAsyncThunk(
+  'wallet/adjustWalletBalance',
+  async (
+    {
+      attendantId,
+      adjustmentData,
+      token,
+    }: {
+      attendantId: string;
+      adjustmentData: { amount: number; type: string; reason?: string };
+      token: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await walletApi.adjustWalletBalance(attendantId, adjustmentData, token);
+
+      if (response.status === 'error') {
+        return rejectWithValue(response.error || 'Failed to adjust wallet balance');
+      }
+
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
 const walletSlice = createSlice({
   name: 'wallet',
   initialState,
@@ -144,6 +172,13 @@ const walletSlice = createSlice({
     builder
       .addCase(markAttendantPaid.fulfilled, (state) => {
         // Refresh data after marking as paid
+        state.lastFetched.allWallets = null;
+      });
+
+    // Adjust wallet balance
+    builder
+      .addCase(adjustWalletBalance.fulfilled, (state) => {
+        // Refresh data after adjusting balance
         state.lastFetched.allWallets = null;
       });
   },

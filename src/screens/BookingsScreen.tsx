@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
 import { CarBookingModal } from '../components/CarBookingModal';
@@ -11,6 +11,18 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchBookings, setFilters, clearError } from '../store/slices/bookingSlice';
 import { fetchAttendants } from '../store/slices/attendantSlice';
+import { showToast } from '../utils/toast';
+
+// Conditionally import react-icons only for web
+let SiCcleaner: any = null;
+if (Platform.OS === 'web') {
+  try {
+    const ReactIcons = require('react-icons/si');
+    SiCcleaner = ReactIcons.SiCcleaner;
+  } catch (e) {
+    console.warn('react-icons not available');
+  }
+}
 
 export const BookingsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -110,12 +122,11 @@ export const BookingsScreen: React.FC = () => {
     };
   }, [dispatch]);
 
-  // Show error alert if there's an error
+  // Show error toast if there's an error
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error, [
-        { text: 'OK', onPress: () => dispatch(clearError()) }
-      ]);
+      showToast.error(error);
+      dispatch(clearError());
     }
   }, [error, dispatch]);
 
@@ -532,12 +543,20 @@ export const BookingsScreen: React.FC = () => {
             ]}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon
-                name="magic"
-                size={16}
-                color={activeTab === 'carpet' ? theme.text : theme.textInverse}
-                style={{ marginRight: 6 }}
-              />
+              {Platform.OS === 'web' && SiCcleaner ? (
+                <SiCcleaner
+                  size={16}
+                  color={activeTab === 'carpet' ? theme.text : theme.textInverse}
+                  style={{ marginRight: 6 }}
+                />
+              ) : (
+                <MaterialIcon
+                  name="cleaning-services"
+                  size={16}
+                  color={activeTab === 'carpet' ? theme.text : theme.textInverse}
+                  style={{ marginRight: 6 }}
+                />
+              )}
               <Text style={[
                 { textAlign: 'center', fontWeight: '500' },
                 { color: activeTab === 'carpet' ? theme.text : theme.textInverse }

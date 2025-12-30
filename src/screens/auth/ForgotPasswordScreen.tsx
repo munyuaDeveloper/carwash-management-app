@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { forgotPassword, resetPassword, clearError } from '../../store/slices/authSlice';
 import { ForgotPasswordRequest, ResetPasswordRequest } from '../../types/auth';
+import { showToast } from '../../utils/toast';
 
 export const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -38,12 +39,12 @@ export const ForgotPasswordScreen: React.FC = () => {
   // Handle forgot password request
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      showToast.error('Please enter your email address');
       return;
     }
 
     if (!isValidEmail(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      showToast.error('Please enter a valid email address');
       return;
     }
 
@@ -65,17 +66,17 @@ export const ForgotPasswordScreen: React.FC = () => {
   // Handle password reset
   const handleResetPassword = async () => {
     if (!newPassword.trim() || !confirmPassword.trim()) {
-      Alert.alert('Error', 'Please fill in all password fields');
+      showToast.error('Please fill in all password fields');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showToast.error('Passwords do not match');
       return;
     }
 
     if (!isValidPassword(newPassword)) {
-      Alert.alert('Error', 'Password must be at least 8 characters long and contain at least one letter and one number');
+      showToast.error('Password must be at least 8 characters long and contain at least one letter and one number');
       return;
     }
 
@@ -87,16 +88,10 @@ export const ForgotPasswordScreen: React.FC = () => {
       const result = await dispatch(resetPassword({ token: resetToken, request }));
 
       if (resetPassword.fulfilled.match(result)) {
-        Alert.alert(
-          'Success',
-          'Password reset successfully! You can now log in with your new password.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('Login' as never),
-            },
-          ]
-        );
+        showToast.success('Password reset successfully! You can now log in with your new password.');
+        setTimeout(() => {
+          navigation.navigate('Login' as never);
+        }, 1500);
       }
     } catch (error) {
       console.error('Reset password error:', error);
