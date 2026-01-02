@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
 
   // User management endpoints
   GET_CURRENT_USER: `${API_VERSION}/users/me`,
+  UPDATE_ME: `${API_VERSION}/users/updateMe`,
   DELETE_CURRENT_USER: `${API_VERSION}/users/deleteMe`,
   GET_ALL_USERS: `${API_VERSION}/users`,
   CREATE_USER: `${API_VERSION}/users`,

@@ -205,6 +205,14 @@ export const userApi = {
     });
   },
 
+  updateMe: async (userData: { name?: string; email?: string; photo?: string }, token: string): Promise<ApiResponse<User>> => {
+    return apiRequest(API_ENDPOINTS.UPDATE_ME, {
+      method: 'PATCH',
+      data: userData,
+      token,
+    });
+  },
+
   deleteCurrentUser: async (token: string): Promise<ApiResponse> => {
     return apiRequest(API_ENDPOINTS.DELETE_CURRENT_USER, {
       method: 'DELETE',

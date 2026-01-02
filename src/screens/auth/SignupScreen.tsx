@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import { RoundedButton } from '../../components/RoundedButton';
 
 export const SignupScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -203,23 +204,13 @@ export const SignupScreen: React.FC = () => {
               </View>
 
               {/* Signup Button */}
-              <TouchableOpacity
+              <RoundedButton
+                title="Create Account"
                 onPress={() => { }}
                 disabled={false}
-                className={`bg-blue-500 rounded-lg py-4 ${false ? 'opacity-50' : ''}`}
-              >
-                <View className="flex-row items-center justify-center">
-                  <Icon
-                    name="user-plus"
-                    size={20}
-                    color="white"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text className="text-white text-center font-semibold text-base">
-                    {false ? 'Creating Account...' : 'Create Account'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                loading={false}
+                variant="submit"
+              />
 
               {/* Login Link */}
               <View className="flex-row justify-center items-center">

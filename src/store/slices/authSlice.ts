@@ -193,6 +193,11 @@ const authSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
+    updateUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+      // Persist updated user to AsyncStorage
+      AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(action.payload));
+    },
   },
   extraReducers: (builder) => {
     // Check auth state
@@ -278,5 +283,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setLoading } = authSlice.actions;
+export const { clearError, setLoading, updateUser } = authSlice.actions;
 export default authSlice.reducer;

@@ -18,8 +18,19 @@ const initialState: AttendantState = {
 
 export const fetchAttendants = createAsyncThunk(
   'attendants/fetchAttendants',
-  async (token: string, { rejectWithValue }) => {
+  async (token: string, { rejectWithValue, getState }) => {
     try {
+      // Check if user is an attendant - attendants don't have permission to fetch all users
+      const state = getState() as { auth: { user: { role?: string } | null } };
+      const userRole = state.auth.user?.role;
+
+      if (userRole === 'attendant') {
+        // Attendants don't have permission to fetch all users
+        // Return empty array to avoid 403 error
+        console.log('[AttendantSlice] Skipping fetchAttendants - user is an attendant');
+        return [];
+      }
+
       const response = await userApi.getAllUsers(token, 'attendant');
 
       if (response.status === 'error') {

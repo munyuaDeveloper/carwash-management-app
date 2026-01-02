@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
@@ -7,8 +8,10 @@ import { logout } from '../store/slices/authSlice';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { showToast } from '../utils/toast';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { user, isLoading } = useAppSelector((state: any) => state.auth);
   const { theme, isDark, toggleTheme, themeMode } = useTheme();
   const themeStyles = useThemeStyles();
@@ -120,6 +123,11 @@ export const ProfileScreen: React.FC = () => {
             key={item.title}
             style={[themeStyles.card, { padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }]}
             activeOpacity={0.7}
+            onPress={() => {
+              if (item.title === 'Edit Profile') {
+                navigation.navigate('EditProfile' as never);
+              }
+            }}
           >
             <View style={[
               { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
@@ -145,19 +153,25 @@ export const ProfileScreen: React.FC = () => {
       <View style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
         <TouchableOpacity
           style={[
-            { borderRadius: 12, paddingVertical: 16, opacity: isLoading ? 0.5 : 1 },
-            { backgroundColor: theme.buttonDanger }
+            { borderRadius: 30, overflow: 'hidden', opacity: isLoading ? 0.5 : 1 }
           ]}
           activeOpacity={0.8}
           onPress={handleLogout}
           disabled={isLoading}
         >
-          <Text style={[
-            { fontSize: 16, fontWeight: '600', textAlign: 'center' },
-            { color: theme.buttonDangerText }
-          ]}>
-            {isLoading ? 'Logging out...' : 'Logout'}
-          </Text>
+          <LinearGradient
+            colors={['#ef4444', '#dc2626', '#b91c1c']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ paddingVertical: 16 }}
+          >
+            <Text style={[
+              { fontSize: 16, fontWeight: '600', textAlign: 'center' },
+              { color: '#ffffff' }
+            ]}>
+              {isLoading ? 'Logging out...' : 'Logout'}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 

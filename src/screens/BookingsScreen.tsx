@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, RefreshControl } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
 import { CarBookingModal } from '../components/CarBookingModal';
 import { CarpetBookingModal } from '../components/CarpetBookingModal';
 import { EditBookingModal } from '../components/EditBookingModal';
+import { RoundedButton } from '../components/RoundedButton';
 import { BookingFormData, CarpetBookingFormData, ApiBooking } from '../types/booking';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
@@ -35,10 +37,11 @@ export const BookingsScreen: React.FC = () => {
     currentPage,
     totalResults,
   } = useAppSelector((state) => state.bookings);
-  const { token } = useAppSelector((state) => state.auth);
+  const { token, user } = useAppSelector((state) => state.auth);
   const { attendants, isLoading: attendantsLoading } = useAppSelector((state) => state.attendants);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
+  const isAttendant = user?.role === 'attendant';
 
   const [activeTab, setActiveTab] = useState<'car' | 'carpet'>('car');
   const [showCarModal, setShowCarModal] = useState(false);
@@ -49,6 +52,7 @@ export const BookingsScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAttendantId, setSelectedAttendantId] = useState<string>('all');
   const [showAttendantDropdown, setShowAttendantDropdown] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const BOOKINGS_PAGE_LIMIT = 10;
 
@@ -99,9 +103,12 @@ export const BookingsScreen: React.FC = () => {
         filters.createdAt = getTodayDateRange();
       }
 
-      // Add attendant filter - set the attendant parameter with the selected attendant ID
-      if (selectedAttendantId !== 'all') {
-        filters.attendant = selectedAttendantId; // This will be sent as ?attendant=ATTENDANT_ID to the API
+      // For attendants, always filter by their own ID
+      if (isAttendant && user?._id) {
+        filters.attendant = user._id;
+      } else if (selectedAttendantId !== 'all') {
+        // For admins, use selected attendant filter
+        filters.attendant = selectedAttendantId;
       }
 
       // Add search query
@@ -113,7 +120,7 @@ export const BookingsScreen: React.FC = () => {
     }, searchQuery.trim() ? 500 : 0); // 500ms debounce for search, immediate for other filters
 
     return () => clearTimeout(timeoutId);
-  }, [dispatch, token, activeTab, activeFilter, selectedAttendantId, searchQuery]);
+  }, [dispatch, token, activeTab, activeFilter, selectedAttendantId, searchQuery, isAttendant, user?._id]);
 
   // Clear error when component unmounts
   useEffect(() => {
@@ -193,7 +200,10 @@ export const BookingsScreen: React.FC = () => {
         filters.createdAt = getTodayDateRange();
       }
 
-      if (selectedAttendantId !== 'all') {
+      // For attendants, always filter by their own ID
+      if (isAttendant && user?._id) {
+        filters.attendant = user._id;
+      } else if (selectedAttendantId !== 'all') {
         filters.attendant = selectedAttendantId;
       }
 
@@ -202,6 +212,44 @@ export const BookingsScreen: React.FC = () => {
       }
 
       dispatch(fetchBookings(filters));
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!token) return;
+
+    setRefreshing(true);
+
+    try {
+      const filters: any = {
+        ...getBaseFilters(),
+        page: 1,
+      };
+
+      if (activeTab === 'car') {
+        filters.category = 'vehicle';
+      } else {
+        filters.category = 'carpet';
+      }
+
+      if (activeFilter === 'today') {
+        filters.createdAt = getTodayDateRange();
+      }
+
+      // For attendants, always filter by their own ID
+      if (isAttendant && user?._id) {
+        filters.attendant = user._id;
+      } else if (selectedAttendantId !== 'all') {
+        filters.attendant = selectedAttendantId;
+      }
+
+      if (searchQuery.trim()) {
+        filters.search = searchQuery.trim();
+      }
+
+      await dispatch(fetchBookings(filters));
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -258,33 +306,16 @@ export const BookingsScreen: React.FC = () => {
             No {activeTab === 'car' ? 'car wash' : 'carpet cleaning'} bookings found
           </Text>
           <Text style={[themeStyles.textTertiary, { textAlign: 'center', marginTop: 8, marginBottom: 24 }]}>
-            Try adjusting your filters or add a new booking
+            {isAttendant ? 'No bookings found' : 'Try adjusting your filters or add a new booking'}
           </Text>
-          <TouchableOpacity
-            onPress={() => (activeTab === 'car' ? setShowCarModal(true) : setShowCarpetModal(true))}
-            activeOpacity={0.8}
-            style={[
-              {
-                borderRadius: 8,
-                paddingVertical: 8,
-                paddingHorizontal: 16,
-                backgroundColor: theme.buttonPrimary,
-                shadowColor: theme.shadow,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDark ? 0.3 : 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-                alignSelf: 'center',
-              }
-            ]}
-          >
-            <Text style={[
-              { fontSize: 14, fontWeight: '600', textAlign: 'center' },
-              { color: theme.buttonPrimaryText }
-            ]}>
-              Add New {activeTab === 'car' ? 'Car' : 'Carpet'} Booking
-            </Text>
-          </TouchableOpacity>
+          {!isAttendant && (
+            <RoundedButton
+              title={`Add New ${activeTab === 'car' ? 'Car' : 'Carpet'} Booking`}
+              onPress={() => (activeTab === 'car' ? setShowCarModal(true) : setShowCarpetModal(true))}
+              variant="submit"
+              style={{ alignSelf: 'center' }}
+            />
+          )}
         </View>
       );
     }
@@ -346,19 +377,21 @@ export const BookingsScreen: React.FC = () => {
                       </View>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <TouchableOpacity
-                        onPress={() => handleEditBooking(booking)}
-                        style={{
-                          padding: 8,
-                          marginRight: 8,
-                          backgroundColor: theme.surface,
-                          borderRadius: 6,
-                          borderWidth: 1,
-                          borderColor: theme.border,
-                        }}
-                      >
-                        <MaterialIcon name="edit" size={16} color={theme.primary} />
-                      </TouchableOpacity>
+                      {!isAttendant && (
+                        <TouchableOpacity
+                          onPress={() => handleEditBooking(booking)}
+                          style={{
+                            padding: 8,
+                            marginRight: 8,
+                            backgroundColor: theme.surface,
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: theme.border,
+                          }}
+                        >
+                          <MaterialIcon name="edit" size={16} color={theme.primary} />
+                        </TouchableOpacity>
+                      )}
                       <View style={[
                         { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
                         statusColor === 'bg-blue-100 text-blue-800' && { backgroundColor: theme.infoLight },
@@ -480,7 +513,17 @@ export const BookingsScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={[themeStyles.container, { flex: 1 }]}>
+    <ScrollView
+      style={[themeStyles.container, { flex: 1 }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+        />
+      }
+    >
       {/* Header */}
       <View style={[themeStyles.surface, { paddingHorizontal: 24, paddingVertical: 32, paddingTop: 64 }]}>
         <Text style={[themeStyles.text, { fontSize: 24, fontWeight: 'bold', marginBottom: 8 }]}>
@@ -494,7 +537,7 @@ export const BookingsScreen: React.FC = () => {
       {/* Service Type Tabs */}
       <View style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
         <View style={[
-          { flexDirection: 'row', backgroundColor: theme.primary, borderRadius: 8, padding: 4 }
+          { flexDirection: 'row', backgroundColor: theme.surfaceSecondary, borderRadius: 12, padding: 4 }
         ]}>
           <TouchableOpacity
             onPress={() => setActiveTab('car')}
@@ -503,28 +546,51 @@ export const BookingsScreen: React.FC = () => {
               {
                 flex: 1,
                 height: 35,
-                borderRadius: 6,
+                borderRadius: 10,
                 justifyContent: 'center',
                 alignItems: 'center',
-                marginHorizontal: 2
-              },
-              activeTab === 'car' && { backgroundColor: theme.surface }
+                marginHorizontal: 2,
+                overflow: 'hidden'
+              }
             ]}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon
-                name="car"
-                size={16}
-                color={activeTab === 'car' ? theme.text : theme.textInverse}
-                style={{ marginRight: 6 }}
-              />
-              <Text style={[
-                { textAlign: 'center', fontWeight: '500' },
-                { color: activeTab === 'car' ? theme.text : theme.textInverse }
-              ]}>
-                Car Services
-              </Text>
-            </View>
+            {activeTab === 'car' ? (
+              <LinearGradient
+                colors={['#6d28d9', '#7c3aed', '#a78bfa']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon
+                    name="car"
+                    size={16}
+                    color="#ffffff"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[
+                    { textAlign: 'center', fontWeight: '500', color: '#ffffff' }
+                  ]}>
+                    Car Services
+                  </Text>
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                <Icon
+                  name="car"
+                  size={16}
+                  color={theme.textSecondary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={[
+                  { textAlign: 'center', fontWeight: '500' },
+                  { color: theme.textSecondary }
+                ]}>
+                  Car Services
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -534,36 +600,67 @@ export const BookingsScreen: React.FC = () => {
               {
                 flex: 1,
                 height: 35,
-                borderRadius: 6,
+                borderRadius: 10,
                 justifyContent: 'center',
                 alignItems: 'center',
-                marginHorizontal: 2
-              },
-              activeTab === 'carpet' && { backgroundColor: theme.surface }
+                marginHorizontal: 2,
+                overflow: 'hidden'
+              }
             ]}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              {Platform.OS === 'web' && SiCcleaner ? (
-                <SiCcleaner
-                  size={16}
-                  color={activeTab === 'carpet' ? theme.text : theme.textInverse}
-                  style={{ marginRight: 6 }}
-                />
-              ) : (
-                <MaterialIcon
-                  name="cleaning-services"
-                  size={16}
-                  color={activeTab === 'carpet' ? theme.text : theme.textInverse}
-                  style={{ marginRight: 6 }}
-                />
-              )}
-              <Text style={[
-                { textAlign: 'center', fontWeight: '500' },
-                { color: activeTab === 'carpet' ? theme.text : theme.textInverse }
-              ]}>
-                Carpet Services
-              </Text>
-            </View>
+            {activeTab === 'carpet' ? (
+              <LinearGradient
+                colors={['#6d28d9', '#7c3aed', '#a78bfa']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                  {Platform.OS === 'web' && SiCcleaner ? (
+                    <SiCcleaner
+                      size={16}
+                      color="#ffffff"
+                      style={{ marginRight: 6 }}
+                    />
+                  ) : (
+                    <MaterialIcon
+                      name="cleaning-services"
+                      size={16}
+                      color="#ffffff"
+                      style={{ marginRight: 6 }}
+                    />
+                  )}
+                  <Text style={[
+                    { textAlign: 'center', fontWeight: '500', color: '#ffffff' }
+                  ]}>
+                    Carpet Services
+                  </Text>
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                {Platform.OS === 'web' && SiCcleaner ? (
+                  <SiCcleaner
+                    size={16}
+                    color={theme.textSecondary}
+                    style={{ marginRight: 6 }}
+                  />
+                ) : (
+                  <MaterialIcon
+                    name="cleaning-services"
+                    size={16}
+                    color={theme.textSecondary}
+                    style={{ marginRight: 6 }}
+                  />
+                )}
+                <Text style={[
+                  { textAlign: 'center', fontWeight: '500' },
+                  { color: theme.textSecondary }
+                ]}>
+                  Carpet Services
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -571,7 +668,7 @@ export const BookingsScreen: React.FC = () => {
       {/* Filter Tabs */}
       <View style={{ paddingHorizontal: 24, paddingVertical: 8 }}>
         <View style={[
-          { flexDirection: 'row', backgroundColor: theme.surfaceSecondary, borderRadius: 8, padding: 4 }
+          { flexDirection: 'row', backgroundColor: theme.surfaceSecondary, borderRadius: 12, padding: 4 }
         ]}>
           {(['today', 'all'] as const).map((filterKey) => (
             <TouchableOpacity
@@ -582,150 +679,144 @@ export const BookingsScreen: React.FC = () => {
                 {
                   flex: 1,
                   height: 35,
-                  borderRadius: 6,
+                  borderRadius: 10,
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginHorizontal: 2
-                },
-                activeFilter === filterKey && { backgroundColor: theme.surface }
+                  marginHorizontal: 2,
+                  overflow: 'hidden'
+                }
               ]}
             >
-              <Text style={[
-                { textAlign: 'center', fontSize: 14, fontWeight: '500' },
-                { color: activeFilter === filterKey ? theme.text : theme.textSecondary }
-              ]}>
-                {filterKey.charAt(0).toUpperCase() + filterKey.slice(1)}
-              </Text>
+              {activeFilter === filterKey ? (
+                <LinearGradient
+                  colors={['#6d28d9', '#7c3aed', '#a78bfa']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={[
+                    { textAlign: 'center', fontSize: 14, fontWeight: '500', color: '#ffffff' }
+                  ]}>
+                    {filterKey.charAt(0).toUpperCase() + filterKey.slice(1)}
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={[
+                    { textAlign: 'center', fontSize: 14, fontWeight: '500' },
+                    { color: theme.textSecondary }
+                  ]}>
+                    {filterKey.charAt(0).toUpperCase() + filterKey.slice(1)}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      {/* Search and Attendant Filter */}
-      <View style={{ paddingHorizontal: 24, paddingVertical: 8 }}>
-        {/* Search Input */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: theme.surfaceSecondary,
-          borderRadius: 8,
-          paddingHorizontal: 12,
-          marginBottom: 12,
-          borderWidth: 1,
-          borderColor: theme.border,
-        }}>
-          <Icon name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
-          <TextInput
-            style={[
-              { flex: 1, paddingVertical: 10, fontSize: 16 },
-              themeStyles.text
-            ]}
-            placeholder="Search by attendant name..."
-            placeholderTextColor={theme.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              style={{ padding: 4 }}
-            >
-              <Icon name="times-circle" size={18} color={theme.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Attendant Filter Dropdown */}
-        <View style={{ position: 'relative' }}>
-          <Pressable
-            onPress={() => {
-              if (!attendantsLoading) {
-                setShowAttendantDropdown(!showAttendantDropdown);
-              }
-            }}
-            style={[
-              {
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-                borderRadius: 8,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderWidth: 1,
-                borderColor: theme.border,
-              },
-              { backgroundColor: attendantsLoading ? theme.surfaceTertiary : theme.surfaceSecondary }
-            ]}
-            disabled={attendantsLoading}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <Icon name="user" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
-              <Text style={[themeStyles.text, { fontSize: 16 }]}>
-                {attendantsLoading
-                  ? 'Loading...'
-                  : selectedAttendantId === 'all'
-                    ? 'All Attendants'
-                    : attendants.find(a => a._id === selectedAttendantId)?.name || 'All Attendants'
-                }
-              </Text>
-            </View>
-            <Icon
-              name={showAttendantDropdown ? "chevron-up" : "chevron-down"}
-              size={14}
-              color={theme.textSecondary}
+      {/* Search and Attendant Filter - Only show for admins */}
+      {!isAttendant && (
+        <View style={{ paddingHorizontal: 24, paddingVertical: 8 }}>
+          {/* Search Input */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: theme.surfaceSecondary,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            marginBottom: 12,
+            borderWidth: 1,
+            borderColor: theme.border,
+          }}>
+            <Icon name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+            <TextInput
+              style={[
+                { flex: 1, paddingVertical: 10, fontSize: 16 },
+                themeStyles.text
+              ]}
+              placeholder="Search by attendant name..."
+              placeholderTextColor={theme.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
-          </Pressable>
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={{ padding: 4 }}
+              >
+                <Icon name="times-circle" size={18} color={theme.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
 
-          {/* Dropdown Options */}
-          {showAttendantDropdown && !attendantsLoading && (
-            <View style={[
-              {
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                zIndex: 50,
-                backgroundColor: theme.surface,
-                borderWidth: 1,
-                borderColor: theme.border,
-                borderRadius: 8,
-                marginTop: 4,
-                maxHeight: 200,
-                shadowColor: theme.shadow,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDark ? 0.3 : 0.1,
-                shadowRadius: 4,
-                elevation: 5,
-              }
-            ]}>
-              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-                <Pressable
-                  onPress={() => {
-                    setSelectedAttendantId('all');
-                    setShowAttendantDropdown(false);
-                  }}
-                  style={[
-                    {
-                      paddingHorizontal: 12,
-                      paddingVertical: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: theme.borderLight,
-                    },
-                    selectedAttendantId === 'all' && { backgroundColor: theme.primaryLight }
-                  ]}
-                >
-                  <Text style={[
-                    { fontSize: 16 },
-                    selectedAttendantId === 'all' ? { color: theme.primary, fontWeight: '500' } : { color: theme.text }
-                  ]}>
-                    All Attendants
-                  </Text>
-                </Pressable>
-                {attendants.map((attendant) => (
+          {/* Attendant Filter Dropdown */}
+          <View style={{ position: 'relative' }}>
+            <Pressable
+              onPress={() => {
+                if (!attendantsLoading) {
+                  setShowAttendantDropdown(!showAttendantDropdown);
+                }
+              }}
+              style={[
+                {
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                },
+                { backgroundColor: attendantsLoading ? theme.surfaceTertiary : theme.surfaceSecondary }
+              ]}
+              disabled={attendantsLoading}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Icon name="user" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+                <Text style={[themeStyles.text, { fontSize: 16 }]}>
+                  {attendantsLoading
+                    ? 'Loading...'
+                    : selectedAttendantId === 'all'
+                      ? 'All Attendants'
+                      : attendants.find(a => a._id === selectedAttendantId)?.name || 'All Attendants'
+                  }
+                </Text>
+              </View>
+              <Icon
+                name={showAttendantDropdown ? "chevron-up" : "chevron-down"}
+                size={14}
+                color={theme.textSecondary}
+              />
+            </Pressable>
+
+            {/* Dropdown Options */}
+            {showAttendantDropdown && !attendantsLoading && (
+              <View style={[
+                {
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 50,
+                  backgroundColor: theme.surface,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: 8,
+                  marginTop: 4,
+                  maxHeight: 200,
+                  shadowColor: theme.shadow,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isDark ? 0.3 : 0.1,
+                  shadowRadius: 4,
+                  elevation: 5,
+                }
+              ]}>
+                <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
                   <Pressable
-                    key={attendant._id}
                     onPress={() => {
-                      setSelectedAttendantId(attendant._id);
+                      setSelectedAttendantId('all');
                       setShowAttendantDropdown(false);
                     }}
                     style={[
@@ -734,23 +825,70 @@ export const BookingsScreen: React.FC = () => {
                         paddingVertical: 12,
                         borderBottomWidth: 1,
                         borderBottomColor: theme.borderLight,
-                      },
-                      selectedAttendantId === attendant._id && { backgroundColor: theme.primaryLight }
+                        borderRadius: 8,
+                        marginHorizontal: 4,
+                        marginVertical: 2,
+                        overflow: 'hidden',
+                      }
                     ]}
                   >
+                    {selectedAttendantId === 'all' ? (
+                      <LinearGradient
+                        colors={['#6d28d9', '#7c3aed', '#a78bfa']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                      />
+                    ) : null}
                     <Text style={[
                       { fontSize: 16 },
-                      selectedAttendantId === attendant._id ? { color: theme.primary, fontWeight: '500' } : { color: theme.text }
+                      selectedAttendantId === 'all' ? { color: '#ffffff', fontWeight: '500' } : { color: theme.text }
                     ]}>
-                      {attendant.name}
+                      All Attendants
                     </Text>
                   </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+                  {attendants.map((attendant) => (
+                    <Pressable
+                      key={attendant._id}
+                      onPress={() => {
+                        setSelectedAttendantId(attendant._id);
+                        setShowAttendantDropdown(false);
+                      }}
+                      style={[
+                        {
+                          paddingHorizontal: 12,
+                          paddingVertical: 12,
+                          borderBottomWidth: 1,
+                          borderBottomColor: theme.borderLight,
+                          borderRadius: 8,
+                          marginHorizontal: 4,
+                          marginVertical: 2,
+                          overflow: 'hidden',
+                        }
+                      ]}
+                    >
+                      {selectedAttendantId === attendant._id ? (
+                        <LinearGradient
+                          colors={['#6d28d9', '#7c3aed', '#a78bfa']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                        />
+                      ) : null}
+                      <Text style={[
+                        { fontSize: 16 },
+                        selectedAttendantId === attendant._id ? { color: '#ffffff', fontWeight: '500' } : { color: theme.text }
+                      ]}>
+                        {attendant.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Bookings List */}
       <View style={{ marginBottom: 24 }}>

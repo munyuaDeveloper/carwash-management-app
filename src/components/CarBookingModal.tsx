@@ -12,9 +12,11 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
+import { RoundedButton } from './RoundedButton';
 import { RootState, AppDispatch } from '../store';
 import { bookingApi } from '../services/apiAxios';
 import { fetchAttendants } from '../store/slices/attendantSlice';
@@ -49,6 +51,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
   const { attendants, isLoading: attendantsLoading } = useSelector((state: RootState) => state.attendants);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
+  const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState<BookingFormData>({
     carRegistration: '',
     phoneNumber: '',
@@ -177,7 +180,13 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
         {/* Header */}
         <View style={[
           themeStyles.surface,
-          { paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }
+          { 
+            paddingHorizontal: 24, 
+            paddingTop: Math.max(insets.top, 16),
+            paddingBottom: 16, 
+            borderBottomWidth: 1, 
+            borderBottomColor: theme.border 
+          }
         ]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
@@ -456,54 +465,23 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
           { paddingHorizontal: 24, paddingVertical: 16, marginBottom: 20 }
         ]}>
           <View style={{ flexDirection: 'row' }}>
-            <TouchableOpacity
-              style={[
-                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderWidth: 1, borderRadius: 8, marginRight: 8, zIndex: 1 },
-                { backgroundColor: theme.surface, borderColor: theme.inputBorder }
-              ]}
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                { textAlign: 'center', fontWeight: '500', fontSize: 16 },
-                { color: theme.text }
-              ]}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <RoundedButton
+                title="Cancel"
+                onPress={onClose}
+                variant="outline"
+              />
+            </View>
 
-            <TouchableOpacity
-              style={[
-                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 8, zIndex: 1 },
-                formData.carRegistration && formData.categoryId && formData.serviceTypeId && formData.attendantId && paymentType && formData.amount > 0 && !isLoading
-                  ? { backgroundColor: theme.buttonPrimary }
-                  : { backgroundColor: theme.surfaceTertiary }
-              ]}
-              onPress={handleSubmit}
-              disabled={!formData.carRegistration || !formData.categoryId || !formData.serviceTypeId || !formData.attendantId || !paymentType || formData.amount <= 0 || isLoading}
-              activeOpacity={0.7}
-            >
-              {isLoading ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                  <ActivityIndicator size="small" color="white" />
-                  <Text style={[
-                    { textAlign: 'center', fontWeight: '500', fontSize: 16, marginLeft: 8 },
-                    { color: theme.buttonPrimaryText }
-                  ]}>
-                    Creating...
-                  </Text>
-                </View>
-              ) : (
-                <Text style={[
-                  { textAlign: 'center', fontWeight: '500', fontSize: 16 },
-                  formData.carRegistration && formData.categoryId && formData.serviceTypeId && formData.attendantId && paymentType && formData.amount > 0 && !isLoading
-                    ? { color: theme.buttonPrimaryText }
-                    : { color: theme.textTertiary }
-                ]}>
-                  Create Booking
-                </Text>
-              )}
-            </TouchableOpacity>
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <RoundedButton
+                title="Create Booking"
+                onPress={handleSubmit}
+                disabled={!formData.carRegistration || !formData.categoryId || !formData.serviceTypeId || !formData.attendantId || !paymentType || formData.amount <= 0 || isLoading}
+                loading={isLoading}
+                variant="submit"
+              />
+            </View>
           </View>
         </View>
         {/* Toast rendered inside modal to appear above modal content */}

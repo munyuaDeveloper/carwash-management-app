@@ -16,6 +16,7 @@ import { RootState, AppDispatch } from '../../store';
 import { forgotPassword, resetPassword, clearError } from '../../store/slices/authSlice';
 import { ForgotPasswordRequest, ResetPasswordRequest } from '../../types/auth';
 import { showToast } from '../../utils/toast';
+import { RoundedButton } from '../../components/RoundedButton';
 
 export const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -161,15 +162,14 @@ export const ForgotPasswordScreen: React.FC = () => {
                   />
                 </View>
 
-                <TouchableOpacity
+                <RoundedButton
+                  title={isLoading ? 'Sending...' : 'Send Reset Link'}
                   onPress={handleForgotPassword}
                   disabled={isLoading}
-                  className={`bg-blue-500 rounded-lg py-4 my-5 ${isLoading ? 'opacity-50' : ''}`}
-                >
-                  <Text className="text-white text-center font-semibold text-base">
-                    {isLoading ? 'Sending...' : 'Send Reset Link'}
-                  </Text>
-                </TouchableOpacity>
+                  loading={isLoading}
+                  variant="submit"
+                  style={{ marginVertical: 20 }}
+                />
 
                 <TouchableOpacity onPress={() => navigation.navigate('Login' as never)} className="self-center">
                   <Text className="text-blue-500 font-medium">Back to Sign In</Text>
@@ -238,15 +238,13 @@ export const ForgotPasswordScreen: React.FC = () => {
                   </View>
                 </View>
 
-                <TouchableOpacity
+                <RoundedButton
+                  title={isLoading ? 'Resetting...' : 'Reset Password'}
                   onPress={handleResetPassword}
                   disabled={isLoading}
-                  className={`bg-blue-500 rounded-lg py-4 ${isLoading ? 'opacity-50' : ''}`}
-                >
-                  <Text className="text-white text-center font-semibold text-base">
-                    {isLoading ? 'Resetting...' : 'Reset Password'}
-                  </Text>
-                </TouchableOpacity>
+                  loading={isLoading}
+                  variant="submit"
+                />
 
                 <View className="flex-row justify-center space-x-4">
                   <TouchableOpacity onPress={handleForgotPassword}>

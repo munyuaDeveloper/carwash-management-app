@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useThemeStyles } from '../../utils/themeUtils';
+import { RoundedButton } from '../../components/RoundedButton';
 import { login, clearError } from '../../store/slices/authSlice';
 import { RootState, AppDispatch } from '../../store';
 
@@ -24,8 +25,8 @@ export const LoginScreen: React.FC = () => {
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
 
-  const [email, setEmail] = useState('munyuapeter07@gmail.com');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -232,30 +233,13 @@ export const LoginScreen: React.FC = () => {
               </TouchableOpacity>
 
               {/* Login Button */}
-              <TouchableOpacity
+              <RoundedButton
+                title={isLoading ? 'Signing In...' : 'Sign In'}
                 onPress={handleLogin}
                 disabled={isLoading}
-                style={[
-                  { borderRadius: 8, paddingVertical: 16, opacity: isLoading ? 0.5 : 1 },
-                  { backgroundColor: theme.buttonPrimary }
-                ]}
-                activeOpacity={0.7}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                  {isLoading && (
-                    <View style={{
-                      width: 16, height: 16, borderWidth: 2, borderColor: 'white', borderTopColor: 'transparent',
-                      borderRadius: 8, marginRight: 8
-                    }} />
-                  )}
-                  <Text style={[
-                    { textAlign: 'center', fontWeight: '600', fontSize: 16 },
-                    { color: theme.buttonPrimaryText }
-                  ]}>
-                    {isLoading ? 'Signing In...' : 'Sign In'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                loading={isLoading}
+                variant="submit"
+              />
 
 
               {/* Divider */}

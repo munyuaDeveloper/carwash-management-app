@@ -10,8 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
+import { RoundedButton } from './RoundedButton';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { updateBooking } from '../store/slices/bookingSlice';
 import { fetchAttendants } from '../store/slices/attendantSlice';
@@ -39,6 +41,7 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
   const { token } = useAppSelector((state) => state.auth);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
+  const insets = useSafeAreaInsets();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -174,7 +177,8 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
             themeStyles.surface,
             {
               paddingHorizontal: 24,
-              paddingVertical: 10,
+              paddingTop: Math.max(insets.top, 10),
+              paddingBottom: 10,
               borderBottomWidth: 1,
               borderBottomColor: theme.border,
             }
@@ -480,30 +484,13 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
               borderTopColor: theme.border,
             }
           ]}>
-            <TouchableOpacity
+            <RoundedButton
+              title="Save Changes"
               onPress={handleSubmit}
               disabled={isLoading}
-              style={[
-                {
-                  backgroundColor: theme.buttonPrimary,
-                  paddingVertical: 16,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                },
-                isLoading && { opacity: 0.5 }
-              ]}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={theme.buttonPrimaryText} />
-              ) : (
-                <Text style={[
-                  { color: theme.buttonPrimaryText, fontWeight: '600', fontSize: 16 }
-                ]}>
-                  Save Changes
-                </Text>
-              )}
-            </TouchableOpacity>
+              loading={isLoading}
+              variant="save"
+            />
           </View>
         </View>
       </KeyboardAvoidingView>

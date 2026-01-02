@@ -12,9 +12,11 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
+import { RoundedButton } from './RoundedButton';
 import { RootState, AppDispatch } from '../store';
 import { fetchAttendants } from '../store/slices/attendantSlice';
 import { bookingApi } from '../services/apiAxios';
@@ -38,6 +40,7 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
   const { attendants, isLoading: attendantsLoading } = useSelector((state: RootState) => state.attendants);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
+  const insets = useSafeAreaInsets();
   const isAdmin = user?.role === 'admin';
   const [formData, setFormData] = useState<CarpetBookingFormData>({
     phoneNumber: '',
@@ -124,7 +127,13 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
         {/* Header */}
         <View style={[
           themeStyles.surface,
-          { paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }
+          { 
+            paddingHorizontal: 24, 
+            paddingTop: Math.max(insets.top, 16),
+            paddingBottom: 16, 
+            borderBottomWidth: 1, 
+            borderBottomColor: theme.border 
+          }
         ]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
@@ -316,54 +325,23 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
           { paddingHorizontal: 24, paddingVertical: 16, marginBottom: 20 }
         ]}>
           <View style={{ flexDirection: 'row' }}>
-            <TouchableOpacity
-              style={[
-                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderWidth: 1, borderRadius: 8, marginRight: 12, zIndex: 1 },
-                { backgroundColor: theme.surface, borderColor: theme.inputBorder }
-              ]}
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                { textAlign: 'center', fontWeight: '500', fontSize: 16 },
-                { color: theme.text }
-              ]}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <RoundedButton
+                title="Cancel"
+                onPress={onClose}
+                variant="outline"
+              />
+            </View>
 
-            <TouchableOpacity
-              style={[
-                { flex: 1, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 8, zIndex: 1 },
-                isFormValid && !isLoading
-                  ? { backgroundColor: theme.buttonPrimary }
-                  : { backgroundColor: theme.surfaceTertiary }
-              ]}
-              onPress={handleSubmit}
-              disabled={!isFormValid || isLoading}
-              activeOpacity={0.7}
-            >
-              {isLoading ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                  <ActivityIndicator size="small" color="white" />
-                  <Text style={[
-                    { textAlign: 'center', fontWeight: '500', fontSize: 16, marginLeft: 8 },
-                    { color: theme.buttonPrimaryText }
-                  ]}>
-                    Creating...
-                  </Text>
-                </View>
-              ) : (
-                <Text style={[
-                  { textAlign: 'center', fontWeight: '500', fontSize: 16 },
-                  isFormValid && !isLoading
-                    ? { color: theme.buttonPrimaryText }
-                    : { color: theme.textTertiary }
-                ]}>
-                  Create Booking
-                </Text>
-              )}
-            </TouchableOpacity>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <RoundedButton
+                title="Create Booking"
+                onPress={handleSubmit}
+                disabled={!isFormValid || isLoading}
+                loading={isLoading}
+                variant="submit"
+              />
+            </View>
           </View>
         </View>
         {/* Toast rendered inside modal to appear above modal content */}

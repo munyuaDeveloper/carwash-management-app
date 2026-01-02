@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
+import { RoundedButton } from './RoundedButton';
 import { showToast } from '../utils/toast';
 import { ThemeAwareToast } from './ThemeAwareToast';
 
@@ -329,22 +330,13 @@ export const AdjustBalanceModal: React.FC<AdjustBalanceModalProps> = ({
             </ScrollView>
 
             <View style={{ marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.border }}>
-              <TouchableOpacity
-                style={[
-                  { borderRadius: 12, paddingVertical: 16, opacity: isSubmitting ? 0.5 : 1 },
-                  { backgroundColor: theme.buttonPrimary }
-                ]}
-                activeOpacity={0.8}
+              <RoundedButton
+                title={isSubmitting ? 'Saving...' : 'Save'}
                 onPress={handleSubmit}
                 disabled={isSubmitting}
-              >
-                <Text style={[
-                  { fontSize: 16, fontWeight: '600', textAlign: 'center' },
-                  { color: theme.buttonPrimaryText }
-                ]}>
-                  {isSubmitting ? 'Saving...' : 'Save'}
-                </Text>
-              </TouchableOpacity>
+                loading={isSubmitting}
+                variant="save"
+              />
             </View>
           </View>
           {/* Toast rendered inside modal to appear above modal content */}

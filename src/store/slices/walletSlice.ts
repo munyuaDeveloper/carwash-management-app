@@ -10,6 +10,11 @@ interface WalletState {
   allWalletsLoading: boolean;
   allWalletsError: string | null;
 
+  // My wallet (for attendants)
+  myWallet: Wallet | null;
+  myWalletLoading: boolean;
+  myWalletError: string | null;
+
   // Selected date for filtering
   selectedDate: string | null;
 
@@ -19,6 +24,7 @@ interface WalletState {
   // Last fetched timestamps
   lastFetched: {
     allWallets: string | null;
+    myWallet: string | null;
   };
 }
 
@@ -27,11 +33,16 @@ const initialState: WalletState = {
   allWalletsLoading: false,
   allWalletsError: null,
 
+  myWallet: null,
+  myWalletLoading: false,
+  myWalletError: null,
+
   selectedDate: null,
   selectedAttendant: null,
 
   lastFetched: {
     allWallets: null,
+    myWallet: null,
   },
 };
 
@@ -44,6 +55,23 @@ export const fetchAllWallets = createAsyncThunk(
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to fetch wallets');
+      }
+
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+export const fetchMyWallet = createAsyncThunk(
+  'wallet/fetchMyWallet',
+  async ({ token, date }: { token: string; date?: string }, { rejectWithValue }) => {
+    try {
+      const response = await walletApi.getMyWallet(token, date);
+
+      if (response.status === 'error') {
+        return rejectWithValue(response.error || 'Failed to fetch wallet');
       }
 
       return response.data;
@@ -124,6 +152,7 @@ const walletSlice = createSlice({
   reducers: {
     clearErrors: (state) => {
       state.allWalletsError = null;
+      state.myWalletError = null;
     },
     setSelectedDate: (state, action: PayloadAction<string | null>) => {
       state.selectedDate = action.payload;
@@ -133,8 +162,10 @@ const walletSlice = createSlice({
     },
     clearWalletData: (state) => {
       state.allWallets = [];
+      state.myWallet = null;
       state.lastFetched = {
         allWallets: null,
+        myWallet: null,
       };
     },
   },
@@ -180,6 +211,25 @@ const walletSlice = createSlice({
       .addCase(adjustWalletBalance.fulfilled, (state) => {
         // Refresh data after adjusting balance
         state.lastFetched.allWallets = null;
+        state.lastFetched.myWallet = null;
+      });
+
+    // Fetch my wallet
+    builder
+      .addCase(fetchMyWallet.pending, (state) => {
+        state.myWalletLoading = true;
+        state.myWalletError = null;
+      })
+      .addCase(fetchMyWallet.fulfilled, (state, action) => {
+        state.myWalletLoading = false;
+        const response = action.payload as any;
+        state.myWallet = response?.data?.wallet || null;
+        state.myWalletError = null;
+        state.lastFetched.myWallet = new Date().toISOString();
+      })
+      .addCase(fetchMyWallet.rejected, (state, action) => {
+        state.myWalletLoading = false;
+        state.myWalletError = action.payload as string;
       });
   },
 });
