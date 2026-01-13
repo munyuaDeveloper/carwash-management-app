@@ -588,7 +588,43 @@ export const offlineBookingApi = {
             updatedBooking.synced = true;
             updatedBooking.syncStatus = 'synced';
             await databaseService.saveBooking(updatedBooking);
+
+            // Remove any pending sync queue entries for this booking since it's now synced
+            const removedQueueEntries = await databaseService.removeSyncQueueEntriesForEntity('booking', localId);
+
+            // If the booking status changed to/from completed, the server has already updated the wallet
+            // So we should mark the affected wallet(s) as synced since the server handles wallet updates
+            if (statusChangedToCompleted || statusChangedFromCompleted ||
+              (wasCompleted && (amountChanged || paymentTypeChanged || attendantChanged))) {
+              // Mark the affected wallet(s) as synced since server updated them
+              const walletIdsToSync = new Set<string>();
+              if (statusChangedToCompleted || (wasCompleted && (amountChanged || paymentTypeChanged))) {
+                walletIdsToSync.add(attendantId);
+              }
+              if (statusChangedFromCompleted || (wasCompleted && attendantChanged)) {
+                walletIdsToSync.add(oldAttendantId);
+              }
+              if (wasCompleted && attendantChanged) {
+                walletIdsToSync.add(attendantId);
+              }
+
+              // Mark all affected wallets as synced
+              for (const walletAttendantId of walletIdsToSync) {
+                const wallet = await databaseService.getWalletByAttendantId(walletAttendantId);
+                if (wallet) {
+                  wallet.synced = true;
+                  wallet.syncStatus = 'synced';
+                  await databaseService.saveWallet(wallet);
+                  console.log(`[OfflineApi] Marked wallet for attendant ${walletAttendantId} as synced (server updated it)`);
+                }
+              }
+            }
+
+            // Log current unsynced count for debugging
+            const unsyncedCount = await databaseService.getUnsyncedCount();
             console.log('[OfflineApi] Booking update synced successfully online');
+            console.log('[OfflineApi] Removed queue entries:', removedQueueEntries);
+            console.log('[OfflineApi] Current unsynced count:', unsyncedCount);
 
             return {
               status: 'success',

@@ -7,6 +7,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { networkService } from '../../services/networkService';
 import { syncService } from '../../services/syncService';
 import { databaseService } from '../../services/database';
+import { cleanupService } from '../../services/cleanupService';
 
 export interface OfflineState {
   isOnline: boolean;
@@ -56,6 +57,13 @@ export const initializeOffline = createAsyncThunk(
 
       // Get initial unsynced count
       const unsyncedCount = await databaseService.getUnsyncedCount();
+
+      // Run cleanup check asynchronously (don't block initialization)
+      // This will check if cleanup is needed and run it if last cleanup was > 24 hours ago
+      cleanupService.checkAndRunCleanup().catch((error) => {
+        console.error('[OfflineSlice] Cleanup check failed:', error);
+        // Don't throw - cleanup failure shouldn't block app initialization
+      });
 
       return {
         networkState,

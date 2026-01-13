@@ -146,8 +146,18 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
       await dispatch(updateBooking({ id: booking._id, bookingData: updateData })).unwrap();
 
       // Refresh unsynced count after successful update to reflect current sync status
+      // Use setTimeout to ensure database writes are committed before checking count
       const { checkUnsyncedCount } = require('../store/slices/offlineSlice');
-      dispatch(checkUnsyncedCount());
+      // Use a small delay to ensure all database operations (including queue removal) are committed
+      setTimeout(() => {
+        dispatch(checkUnsyncedCount()).then((result: any) => {
+          if (result.type === 'offline/checkUnsyncedCount/fulfilled') {
+            const count = result.payload;
+            const total = count.bookings + count.wallets + count.attendants + count.queue;
+            console.log('[EditBookingModal] Unsynced count after update:', count, 'Total:', total);
+          }
+        });
+      }, 200); // Small delay to ensure database writes are committed
 
       // Show appropriate message based on network status
       if (isOnline) {

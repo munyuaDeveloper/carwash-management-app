@@ -501,11 +501,54 @@ class SyncService {
           return false;
         }
 
+        // Check if this update affects wallet (status change to/from completed, or completed booking changes)
+        // The booking in DB already has the updated status, so we check if it's completed or if the update data indicates completion
+        const updateAffectsWallet = booking.status === 'completed' || data.status === 'completed';
+
         const response = await bookingApi.updateBooking(booking.serverId, data, token);
         if (response.status === 'success') {
+          // Update booking with server response if available
+          const serverBooking = (response.data as any)?.data?.booking;
+          if (serverBooking) {
+            booking.status = serverBooking.status || booking.status;
+            booking.attendantId = serverBooking.attendant?._id || booking.attendantId;
+          }
+
           booking.synced = true;
           booking.syncStatus = 'synced';
           await databaseService.saveBooking(booking);
+
+          // If this update affects wallet, mark the affected wallet(s) as synced
+          // The server has already updated the wallet when the booking was updated
+          if (updateAffectsWallet) {
+            const attendantIds = new Set<string>();
+
+            // Add current attendant (from updated booking)
+            if (booking.attendantId) {
+              attendantIds.add(booking.attendantId);
+            }
+
+            // If attendant changed in the update, also mark old attendant's wallet as synced
+            // Check if the update data has a different attendant than the booking
+            if (data.attendant && booking.attendantId && data.attendant !== booking.attendantId) {
+              // The booking.attendantId is already updated, so we need to check the original
+              // For now, we'll mark both if we can determine the old one
+              // Actually, since the booking is already updated locally, we can't easily get the old attendant
+              // But the server handles this, so we'll just mark the current one
+            }
+
+            // Mark all affected wallets as synced
+            for (const walletAttendantId of attendantIds) {
+              const wallet = await databaseService.getWalletByAttendantId(walletAttendantId);
+              if (wallet) {
+                wallet.synced = true;
+                wallet.syncStatus = 'synced';
+                await databaseService.saveWallet(wallet);
+                console.log(`[SyncService] Marked wallet for attendant ${walletAttendantId} as synced (server updated it with booking)`);
+              }
+            }
+          }
+
           return true;
         } else {
           console.error(`[SyncService] Failed to update booking: ${response.error}`);

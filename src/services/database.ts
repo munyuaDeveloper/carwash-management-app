@@ -614,6 +614,32 @@ class DatabaseService {
     await this.db.runAsync('DELETE FROM sync_queue WHERE id = ?', [id]);
   }
 
+  /**
+   * Remove sync queue entries for a specific entity
+   * Useful when an entity syncs successfully online and we want to remove any pending queue entries
+   */
+  async removeSyncQueueEntriesForEntity(entityType: 'booking' | 'wallet' | 'attendant', entityId: string): Promise<number> {
+    await this.ensureInitialized();
+    if (!this.db) throw new Error('Database not initialized');
+
+    // Get count before deletion for logging
+    const countResult = await this.db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM sync_queue WHERE entityType = ? AND entityId = ?',
+      [entityType, entityId]
+    );
+    const count = countResult?.count || 0;
+
+    if (count > 0) {
+      await this.db.runAsync(
+        'DELETE FROM sync_queue WHERE entityType = ? AND entityId = ?',
+        [entityType, entityId]
+      );
+      console.log(`[Database] Removed ${count} sync queue entries for ${entityType}/${entityId}`);
+    }
+
+    return count;
+  }
+
   async updateSyncQueueError(id: string, error: string, retryCount: number): Promise<void> {
     await this.ensureInitialized();
     if (!this.db) throw new Error('Database not initialized');
@@ -652,6 +678,17 @@ class DatabaseService {
       attendants: attendants?.count || 0,
       queue: queue?.count || 0,
     };
+  }
+
+  /**
+   * Get database instance (for advanced operations like cleanup)
+   * Use with caution - prefer using the service methods when possible
+   */
+  getDatabase(): SQLite.SQLiteDatabase {
+    if (!this.db) {
+      throw new Error('Database not initialized. Call initialize() first.');
+    }
+    return this.db;
   }
 }
 
