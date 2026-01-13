@@ -54,31 +54,38 @@ export const ProfileScreen: React.FC = () => {
       {/* Header */}
       <View style={[themeStyles.surface, { paddingHorizontal: 24, paddingVertical: 32, paddingTop: 64 }]}>
         <View style={{ alignItems: 'center' }}>
-          <View style={[
-            { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-            { backgroundColor: theme.primary }
-          ]}>
-            <Text style={[{ color: theme.textInverse, fontSize: 32 }]}>
+          <LinearGradient
+            colors={isDark ? ['#4c1d95', '#7c3aed', '#a78bfa'] : ['#6d28d9', '#7c3aed', '#a78bfa']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }
+            ]}
+          >
+            <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold' }}>
               {user?.name?.charAt(0)?.toUpperCase() || 'U'}
             </Text>
-          </View>
+          </LinearGradient>
           <Text style={[themeStyles.text, { fontSize: 20, fontWeight: 'bold', marginBottom: 4 }]}>
             {user?.name || 'User'}
           </Text>
           <Text style={[themeStyles.textSecondary, { marginBottom: 8 }]}>
             {user?.phone}
           </Text>
-          <View style={[
-            { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-            { backgroundColor: theme.primaryLight }
-          ]}>
-            <Text style={[
-              { fontSize: 14, fontWeight: '500' },
-              { color: theme.primaryDark }
-            ]}>
-              {user?.role || 'Manager'}
+          <LinearGradient
+            colors={isDark ? ['#4c1d95', '#7c3aed', '#a78bfa'] : ['#6d28d9', '#7c3aed', '#a78bfa']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }
+            ]}
+          >
+            <Text style={{ color: 'white', fontSize: 14, fontWeight: '500' }}>
+              {(user?.role || 'Manager').split(' ').map((word: string) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+              ).join(' ')}
             </Text>
-          </View>
+          </LinearGradient>
         </View>
       </View>
 
@@ -129,18 +136,34 @@ export const ProfileScreen: React.FC = () => {
               }
             }}
           >
-            <View style={[
-              { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-              item.color === 'bg-blue-500' && { backgroundColor: theme.primary },
-              item.color === 'bg-gray-500' && { backgroundColor: theme.textTertiary },
-              item.color === 'bg-purple-500' && { backgroundColor: theme.secondary },
-            ]}>
-              {item.iconType === 'FontAwesome' ? (
-                <Icon name={item.icon} size={20} color="white" />
-              ) : (
-                <MaterialIcon name={item.icon} size={20} color="white" />
-              )}
-            </View>
+            {item.title === 'Edit Profile' ? (
+              <LinearGradient
+                colors={isDark ? ['#4c1d95', '#7c3aed', '#a78bfa'] : ['#6d28d9', '#7c3aed', '#a78bfa']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 16 }
+                ]}
+              >
+                {item.iconType === 'FontAwesome' ? (
+                  <Icon name={item.icon} size={20} color="white" />
+                ) : (
+                  <MaterialIcon name={item.icon} size={20} color="white" />
+                )}
+              </LinearGradient>
+            ) : (
+              <View style={[
+                { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+                item.color === 'bg-gray-500' && { backgroundColor: theme.textTertiary },
+                item.color === 'bg-purple-500' && { backgroundColor: theme.secondary },
+              ]}>
+                {item.iconType === 'FontAwesome' ? (
+                  <Icon name={item.icon} size={20} color="white" />
+                ) : (
+                  <MaterialIcon name={item.icon} size={20} color="white" />
+                )}
+              </View>
+            )}
             <Text style={[themeStyles.text, { flex: 1, fontSize: 16, fontWeight: '500' }]}>
               {item.title}
             </Text>

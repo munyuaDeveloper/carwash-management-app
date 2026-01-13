@@ -270,20 +270,24 @@ export const HomeScreen: React.FC = () => {
       <View style={[themeStyles.surface, { paddingHorizontal: 24, paddingVertical: 4, paddingTop: 64 }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
           {/* Profile Picture */}
-          <View style={[
-            { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-            { backgroundColor: theme.primary }
-          ]}>
+          <LinearGradient
+            colors={isDark ? ['#4c1d95', '#7c3aed', '#a78bfa'] : ['#6d28d9', '#7c3aed', '#a78bfa']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginRight: 12 }
+            ]}
+          >
             {user?.photo ? (
-              <Text style={{ color: theme.textInverse, fontSize: 24 }}>
+              <Text style={{ color: 'white', fontSize: 24 }}>
                 {user.name?.charAt(0)?.toUpperCase() || 'U'}
               </Text>
             ) : (
-              <Text style={{ color: theme.textInverse, fontSize: 24, fontWeight: 'bold' }}>
+              <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>
                 {user?.name?.charAt(0)?.toUpperCase() || 'U'}
               </Text>
             )}
-          </View>
+          </LinearGradient>
           <View style={{ flex: 1 }}>
             <Text style={[themeStyles.text, { fontSize: 16, fontWeight: 'bold', marginBottom: 4 }]}>
               {getTimeBasedGreeting()}, {user?.name || 'Manager'}.

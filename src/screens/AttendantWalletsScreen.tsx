@@ -330,7 +330,7 @@ export const AttendantWalletsScreen: React.FC = () => {
                 </View>
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>Total Earnings</Text>
+                  <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>Commissionable Amount</Text>
                   <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500' }]}>
                     {formatCurrency(myWallet.totalEarnings)}
                   </Text>
@@ -533,7 +533,7 @@ export const AttendantWalletsScreen: React.FC = () => {
               </View>
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>Total Earnings</Text>
+                <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>Commissionable Amount</Text>
                 <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '500' }]}>
                   {formatCurrency(item.totalEarnings)}
                 </Text>

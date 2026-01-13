@@ -33,7 +33,7 @@ export const WalletAdjustmentsScreen: React.FC = () => {
   useEffect(() => {
     if (wallet?.attendant?.name) {
       navigation.setOptions({
-        title: `${wallet.attendant.name}'s Adjustments`,
+        title: `${wallet.attendant.name}'s Wallet Details`,
         headerStyle: {
           backgroundColor: theme.surface,
         },
@@ -102,12 +102,18 @@ export const WalletAdjustmentsScreen: React.FC = () => {
           </Text>
           <View style={{ gap: 8 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>Current Balance</Text>
+              <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>Balance</Text>
               <Text style={[
                 { fontSize: 16, fontWeight: '600' },
                 wallet.balance >= 0 ? { color: theme.success } : { color: theme.error }
               ]}>
                 {formatCurrency(wallet.balance)}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>Commissionable Amount</Text>
+              <Text style={[themeStyles.text, { fontSize: 16, fontWeight: '600', color: theme.success }]}>
+                {formatCurrency(wallet.totalEarnings || 0)}
               </Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
