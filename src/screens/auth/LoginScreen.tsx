@@ -17,6 +17,8 @@ import { useThemeStyles } from '../../utils/themeUtils';
 import { RoundedButton } from '../../components/RoundedButton';
 import { login, clearError } from '../../store/slices/authSlice';
 import { RootState, AppDispatch } from '../../store';
+import { useOffline } from '../../hooks/useOffline';
+import { getCachedEmail, hasCachedCredentials } from '../../services/offlineAuth';
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -24,12 +26,29 @@ export const LoginScreen: React.FC = () => {
   const { isLoading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
+  const { isOnline } = useOffline();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [hasCachedLogin, setHasCachedLogin] = useState(false);
+
+  // Check for cached credentials on mount
+  useEffect(() => {
+    const checkCachedLogin = async () => {
+      const hasCached = await hasCachedCredentials();
+      if (hasCached) {
+        const cachedEmail = await getCachedEmail();
+        if (cachedEmail) {
+          setEmail(cachedEmail);
+          setHasCachedLogin(true);
+        }
+      }
+    };
+    checkCachedLogin();
+  }, []);
 
   // Clear error when component mounts or when user starts typing
   useEffect(() => {
@@ -85,9 +104,6 @@ export const LoginScreen: React.FC = () => {
     // Validate password
     if (!password.trim()) {
       setPasswordError('Password is required');
-      hasError = true;
-    } else if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters long');
       hasError = true;
     }
 
@@ -197,6 +213,20 @@ export const LoginScreen: React.FC = () => {
                 )}
               </View>
 
+              {/* Offline Login Info */}
+              {!isOnline && hasCachedLogin && (
+                <View style={[
+                  { backgroundColor: theme.warningLight, borderWidth: 1, borderColor: theme.warning, borderRadius: 8, padding: 12 }
+                ]}>
+                  <Text style={[
+                    { fontSize: 14, fontWeight: '500' },
+                    { color: theme.warning }
+                  ]}>
+                    You're offline. Logging in with cached credentials. Some features may be limited.
+                  </Text>
+                </View>
+              )}
+
               {/* Error Message */}
               {error && (
                 <View style={[
@@ -208,11 +238,13 @@ export const LoginScreen: React.FC = () => {
                   ]}>
                     {error.includes('Network')
                       ? 'Network error. Please check your connection and try again.'
-                      : error.includes('401') || error.includes('Invalid')
-                        ? 'Invalid email or password. Please try again.'
-                        : error.includes('404')
-                          ? 'User not found. Please check your email address.'
-                          : error
+                      : error.includes('cached') || error.includes('offline')
+                        ? error
+                        : error.includes('401') || error.includes('Invalid')
+                          ? 'Invalid email or password. Please try again.'
+                          : error.includes('404')
+                            ? 'User not found. Please check your email address.'
+                            : error
                     }
                   </Text>
                 </View>

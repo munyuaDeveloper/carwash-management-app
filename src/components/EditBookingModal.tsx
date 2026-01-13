@@ -21,6 +21,7 @@ import { ApiBooking } from '../types/booking';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { showToast } from '../utils/toast';
+import { useOffline } from '../hooks/useOffline';
 
 interface EditBookingModalProps {
   visible: boolean;
@@ -42,6 +43,7 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
   const insets = useSafeAreaInsets();
+  const { isOnline } = useOffline();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -143,11 +145,30 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
 
       await dispatch(updateBooking({ id: booking._id, bookingData: updateData })).unwrap();
 
-      showToast.success('Booking updated successfully');
+      // Refresh unsynced count after successful update to reflect current sync status
+      const { checkUnsyncedCount } = require('../store/slices/offlineSlice');
+      dispatch(checkUnsyncedCount());
+
+      // Show appropriate message based on network status
+      if (isOnline) {
+        showToast.success('Booking updated successfully');
+      } else {
+        showToast.success('Booking updated and will sync when online');
+      }
+
       onBookingUpdated?.();
       onClose();
     } catch (error: any) {
-      showToast.error(error || 'Failed to update booking');
+      // Better error handling for offline scenarios
+      const errorMessage = error || 'Failed to update booking';
+      if (!isOnline && errorMessage.includes('Network')) {
+        showToast.warning('Booking saved locally. Will sync when connection is restored.');
+        // Still close modal and update callback since it's saved locally
+        onBookingUpdated?.();
+        onClose();
+      } else {
+        showToast.error(errorMessage);
+      }
     }
   };
 
@@ -467,7 +488,28 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
                 <View style={{ alignItems: 'center', marginTop: 24 }}>
                   <ActivityIndicator size="large" color={theme.primary} />
                   <Text style={[themeStyles.textSecondary, { marginTop: 8 }]}>
-                    Updating booking...
+                    {isOnline ? 'Updating booking...' : 'Saving booking locally...'}
+                  </Text>
+                </View>
+              )}
+
+              {/* Offline indicator */}
+              {!isOnline && !isLoading && (
+                <View style={[
+                  {
+                    backgroundColor: theme.warningLight,
+                    borderWidth: 1,
+                    borderColor: theme.warning,
+                    borderRadius: 8,
+                    padding: 12,
+                    marginTop: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }
+                ]}>
+                  <MaterialIcon name="cloud-off" size={20} color={theme.warning} style={{ marginRight: 8 }} />
+                  <Text style={[themeStyles.text, { fontSize: 14, flex: 1 }]}>
+                    You're offline. Changes will be saved locally and synced when connection is restored.
                   </Text>
                 </View>
               )}

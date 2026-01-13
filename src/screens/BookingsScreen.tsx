@@ -14,6 +14,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchBookings, setFilters, clearError } from '../store/slices/bookingSlice';
 import { fetchAttendants } from '../store/slices/attendantSlice';
 import { showToast } from '../utils/toast';
+import { useOffline } from '../hooks/useOffline';
 
 // Conditionally import react-icons only for web
 let SiCcleaner: any = null;
@@ -42,6 +43,7 @@ export const BookingsScreen: React.FC = () => {
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
   const isAttendant = user?.role === 'attendant';
+  const { sync, unsyncedCount } = useOffline();
 
   const [activeTab, setActiveTab] = useState<'car' | 'carpet'>('car');
   const [showCarModal, setShowCarModal] = useState(false);
@@ -218,8 +220,25 @@ export const BookingsScreen: React.FC = () => {
   const handleRefresh = async () => {
     if (!token) return;
 
-    setRefreshing(true);
+    // Only sync if there's data to sync
+    const totalUnsynced = unsyncedCount.bookings + unsyncedCount.wallets + unsyncedCount.attendants + unsyncedCount.queue;
 
+    // Only show refreshing spinner if there's data to sync
+    if (totalUnsynced > 0) {
+      setRefreshing(true);
+
+      try {
+        // Sync data when pulling to refresh
+        await sync().catch(() => {
+          // Silently fail - sync errors are handled internally
+        });
+      } finally {
+        setRefreshing(false);
+      }
+    }
+
+    // Always refresh the bookings list
+    setRefreshing(true);
     try {
       const filters: any = {
         ...getBaseFilters(),

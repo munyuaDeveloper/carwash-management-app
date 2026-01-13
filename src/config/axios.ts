@@ -39,12 +39,17 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    console.error('[API Error]:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: error.config?.url,
-      message: error.message,
-    });
+    // Only log errors that aren't network errors (network errors are expected in offline mode)
+    // Skip logging network errors to avoid console spam
+    const isNetworkError = !error.response && error.request;
+    if (!isNetworkError) {
+      console.error('[API Error]:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        message: error.message,
+      });
+    }
 
     // Extract error message from response
     const getErrorMessage = (): string => {
@@ -64,6 +69,7 @@ axiosInstance.interceptors.response.use(
     };
 
     // Skip showing toast for authentication endpoints - they're handled in their respective screens
+    // Also skip stats endpoints - they're non-critical and errors should be silent
     const url = error.config?.url || '';
     // Check for auth endpoints - handle both relative paths and full URLs
     const isAuthEndpoint =
@@ -78,20 +84,17 @@ axiosInstance.interceptors.response.use(
       url.endsWith('/login') ||
       url.endsWith('/signup');
 
-    // Safely show toast with error handling to prevent crashes
-    // Skip entirely for auth endpoints to avoid showing errors during login/signup
-    const safeShowToast = (message: string) => {
-      // Early return for auth endpoints - don't show any toast
-      if (isAuthEndpoint) {
-        return;
-      }
+    // Check for stats endpoints - don't show errors for stats failures
+    const isStatsEndpoint =
+      url.includes('/stats') ||
+      url.endsWith('/stats');
 
-      try {
-        showToast.error(message);
-      } catch (toastError) {
-        // Silently fail if toast can't be shown (prevents crash)
-        console.warn('[Toast Error]:', toastError);
-      }
+    // Suppress all error toasts - errors are logged but not shown to users
+    // This prevents error spam and allows components to handle errors gracefully
+    const safeShowToast = (message: string) => {
+      // Don't show any error toasts - errors are logged in console for debugging
+      // Components can handle errors in their own UI if needed
+      return;
     };
 
     // Handle specific error cases
@@ -133,12 +136,11 @@ axiosInstance.interceptors.response.use(
       }
     } else if (error.request) {
       // Network error - no response received
-      console.error('[Network] Network Error:', error.message);
-      safeShowToast('Network error. Please check your internet connection.');
+      // Silently handle network errors - don't log or show to users
+      // Network errors are expected in offline mode and handled gracefully
     } else {
       // Request setup error
-      console.error('[Setup] Request Setup Error:', error.message);
-      safeShowToast(error.message || 'Request failed. Please try again.');
+      // Silently handle setup errors - don't show to users
     }
 
     return Promise.reject(error);

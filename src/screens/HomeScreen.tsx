@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Platform, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppSelector } from '../store/hooks';
 import { useTheme } from '../contexts/ThemeContext';
@@ -30,6 +30,7 @@ export const HomeScreen: React.FC = () => {
   const [isCarpetBookingSheetVisible, setIsCarpetBookingSheetVisible] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleCarServicesPress = () => {
     setIsBookingSheetVisible(true);
@@ -78,13 +79,22 @@ export const HomeScreen: React.FC = () => {
       const response = await statsApi.getStats(token);
       if (response.status === 'success' && response.data?.stats) {
         setStats(response.data.stats);
-      } else {
-        console.error('Failed to fetch stats:', response.error);
       }
+      // Silently fail - don't show errors for stats
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      // Silently fail - don't show errors for stats
     } finally {
       setIsLoadingStats(false);
+    }
+  };
+
+  // Handle pull to refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchStats();
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -245,7 +255,17 @@ export const HomeScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={[themeStyles.container, { flex: 1 }]}>
+    <ScrollView
+      style={[themeStyles.container, { flex: 1 }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+        />
+      }
+    >
       {/* Header with Profile */}
       <View style={[themeStyles.surface, { paddingHorizontal: 24, paddingVertical: 4, paddingTop: 64 }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
@@ -281,19 +301,6 @@ export const HomeScreen: React.FC = () => {
           <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600' }]}>
             Today's Overview
           </Text>
-          <TouchableOpacity
-            onPress={fetchStats}
-            disabled={isLoadingStats}
-            activeOpacity={0.7}
-            style={{ padding: 8 }}
-          >
-            <MaterialIcon
-              name="refresh"
-              size={24}
-              color={isDark ? '#60a5fa' : '#2563eb'}
-              style={isLoadingStats ? { opacity: 0.5 } : {}}
-            />
-          </TouchableOpacity>
         </View>
 
         <View>

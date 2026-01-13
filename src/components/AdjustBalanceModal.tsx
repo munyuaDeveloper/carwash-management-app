@@ -10,7 +10,6 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';

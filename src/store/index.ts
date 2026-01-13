@@ -5,6 +5,7 @@ import authReducer from './slices/authSlice';
 import attendantReducer from './slices/attendantSlice';
 import bookingReducer from './slices/bookingSlice';
 import walletReducer from './slices/walletSlice';
+import offlineReducer from './slices/offlineSlice';
 
 const persistConfig = {
   key: 'root',
@@ -17,6 +18,7 @@ const rootReducer = combineReducers({
   attendants: attendantReducer,
   bookings: bookingReducer,
   wallet: walletReducer,
+  offline: offlineReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

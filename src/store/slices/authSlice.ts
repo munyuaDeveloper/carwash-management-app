@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { User, LoginCredentials, ForgotPasswordRequest, ResetPasswordRequest } from '../../types/auth';
 import { authApi } from '../../services/apiEnhanced';
+import { offlineLogin, cacheCredentials, clearCachedCredentials } from '../../services/offlineAuth';
+import { networkService } from '../../services/networkService';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -65,8 +67,8 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      // Make actual API call
-      const response = await authApi.login(credentials);
+      // Use offline-first login (tries online first, falls back to offline)
+      const response = await offlineLogin(credentials.email, credentials.password);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Login failed');
@@ -77,8 +79,9 @@ export const login = createAsyncThunk(
         return rejectWithValue('Invalid response from server');
       }
 
+      // Handle both online and offline login responses
       const { token, data } = response.data;
-      const user = data.user;
+      const user = data?.user || data; // Handle different response structures
 
       // Store user data and token
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
@@ -91,7 +94,12 @@ export const login = createAsyncThunk(
         await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, token);
       }
 
-      return { user, token };
+      // Cache credentials if online login succeeded (not offline login)
+      if (!response.isOffline) {
+        await cacheCredentials(credentials.email, credentials.password);
+      }
+
+      return { user, token, isOffline: response.isOffline || false };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Network error occurred');
     }
@@ -120,6 +128,7 @@ export const logout = createAsyncThunk(
         AsyncStorage.removeItem(STORAGE_KEYS.USER),
         AsyncStorage.removeItem(STORAGE_KEYS.BIOMETRIC_ENABLED),
         AsyncStorage.removeItem(STORAGE_KEYS.ONBOARDING_COMPLETED),
+        clearCachedCredentials(), // Clear cached login credentials
       ]);
 
       // Try to clear SecureStore, fallback to AsyncStorage

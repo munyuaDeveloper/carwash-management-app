@@ -1,3 +1,11 @@
+export interface WalletAdjustment {
+  type: 'tip' | 'deduction';
+  amount: number;
+  reason: string | null;
+  adjustedBy: string;
+  adjustedAt: string;
+}
+
 export interface Wallet {
   _id: string;
   attendant: {
@@ -13,6 +21,7 @@ export interface Wallet {
   companyDebt: number;
   lastPaymentDate: string | null;
   isPaid: boolean;
+  adjustments?: WalletAdjustment[];
   createdAt: string;
   updatedAt: string;
   __v: number;

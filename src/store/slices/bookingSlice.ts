@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { bookingApi } from '../../services/apiAxios';
+import { offlineBookingApi } from '../../services/offlineApi';
 import { RootState } from '../index';
 
 // API Response Types based on the API documentation
@@ -20,6 +20,7 @@ export interface ApiBooking {
   paymentType: 'attendant_cash' | 'admin_cash' | 'admin_till';
   status: 'pending' | 'in progress' | 'completed' | 'cancelled';
   attendantPaid: boolean;
+  note?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,7 +84,7 @@ export const fetchBookings = createAsyncThunk(
         return rejectWithValue('No authentication token available');
       }
 
-      const response = await bookingApi.getAllBookings(token, filters);
+      const response = await offlineBookingApi.getAllBookings(token, filters);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to fetch bookings');
@@ -119,7 +120,7 @@ export const createVehicleBooking = createAsyncThunk(
         return rejectWithValue('No authentication token available');
       }
 
-      const response = await bookingApi.createVehicleBooking(bookingData, token);
+      const response = await offlineBookingApi.createVehicleBooking(bookingData, token);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to create booking');
@@ -151,7 +152,7 @@ export const createCarpetBooking = createAsyncThunk(
         return rejectWithValue('No authentication token available');
       }
 
-      const response = await bookingApi.createCarpetBooking(bookingData, token);
+      const response = await offlineBookingApi.createCarpetBooking(bookingData, token);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to create booking');
@@ -175,7 +176,7 @@ export const updateBooking = createAsyncThunk(
         return rejectWithValue('No authentication token available');
       }
 
-      const response = await bookingApi.updateBooking(id, bookingData, token);
+      const response = await offlineBookingApi.updateBooking(id, bookingData, token);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to update booking');
@@ -199,7 +200,7 @@ export const deleteBooking = createAsyncThunk(
         return rejectWithValue('No authentication token available');
       }
 
-      const response = await bookingApi.deleteBooking(id, token);
+      const response = await offlineBookingApi.deleteBooking(id, token);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to delete booking');

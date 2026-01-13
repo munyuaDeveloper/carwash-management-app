@@ -18,7 +18,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useThemeStyles } from '../utils/themeUtils';
 import { RoundedButton } from './RoundedButton';
 import { RootState, AppDispatch } from '../store';
-import { bookingApi } from '../services/apiAxios';
+import { offlineBookingApi } from '../services/offlineApi';
 import { fetchAttendants } from '../store/slices/attendantSlice';
 import {
   CAR_CATEGORIES,
@@ -134,7 +134,7 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
         ...(formData.note && { note: formData.note }), // Include note if provided
       };
 
-      const response = await bookingApi.createVehicleBooking(bookingData, token);
+      const response = await offlineBookingApi.createVehicleBooking(bookingData, token);
 
       if (response.status === 'error') {
         throw new Error(response.error || 'Failed to create booking');
@@ -180,12 +180,12 @@ export const CarBookingModal: React.FC<CarBookingModalProps> = ({
         {/* Header */}
         <View style={[
           themeStyles.surface,
-          { 
-            paddingHorizontal: 24, 
+          {
+            paddingHorizontal: 24,
             paddingTop: Math.max(insets.top, 16),
-            paddingBottom: 16, 
-            borderBottomWidth: 1, 
-            borderBottomColor: theme.border 
+            paddingBottom: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border
           }
         ]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>

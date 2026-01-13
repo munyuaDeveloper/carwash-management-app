@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { walletApi } from '../../services/apiAxios';
+import { offlineWalletApi } from '../../services/offlineApi';
 import {
   Wallet,
 } from '../../types/wallet';
@@ -51,7 +51,7 @@ export const fetchAllWallets = createAsyncThunk(
   'wallet/fetchAllWallets',
   async ({ token, date }: { token: string; date?: string }, { rejectWithValue }) => {
     try {
-      const response = await walletApi.getAllWallets(token, date);
+      const response = await offlineWalletApi.getAllWallets(token, date);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to fetch wallets');
@@ -68,7 +68,7 @@ export const fetchMyWallet = createAsyncThunk(
   'wallet/fetchMyWallet',
   async ({ token, date }: { token: string; date?: string }, { rejectWithValue }) => {
     try {
-      const response = await walletApi.getMyWallet(token, date);
+      const response = await offlineWalletApi.getMyWallet(token, date);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to fetch wallet');
@@ -88,7 +88,7 @@ export const settleAttendantBalances = createAsyncThunk(
   'wallet/settleAttendantBalances',
   async ({ attendantIds, token }: { attendantIds: string[]; token: string }, { rejectWithValue }) => {
     try {
-      const response = await walletApi.settleAttendantBalances(attendantIds, token);
+      const response = await offlineWalletApi.settleAttendantBalances(attendantIds, token);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to settle attendant balances');
@@ -105,7 +105,7 @@ export const markAttendantPaid = createAsyncThunk(
   'wallet/markAttendantPaid',
   async ({ attendantId, token }: { attendantId: string; token: string }, { rejectWithValue }) => {
     try {
-      const response = await walletApi.markAttendantPaid(attendantId, token);
+      const response = await offlineWalletApi.markAttendantPaid(attendantId, token);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to mark attendant as paid');
@@ -133,7 +133,7 @@ export const adjustWalletBalance = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await walletApi.adjustWalletBalance(attendantId, adjustmentData, token);
+      const response = await offlineWalletApi.adjustWalletBalance(attendantId, adjustmentData, token);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to adjust wallet balance');

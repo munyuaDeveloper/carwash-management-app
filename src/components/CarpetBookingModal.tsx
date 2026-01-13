@@ -19,7 +19,7 @@ import { useThemeStyles } from '../utils/themeUtils';
 import { RoundedButton } from './RoundedButton';
 import { RootState, AppDispatch } from '../store';
 import { fetchAttendants } from '../store/slices/attendantSlice';
-import { bookingApi } from '../services/apiAxios';
+import { offlineBookingApi } from '../services/offlineApi';
 import { CarpetBookingFormData } from '../types/booking';
 import { showToast } from '../utils/toast';
 import { ThemeAwareToast } from './ThemeAwareToast';
@@ -83,7 +83,7 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
         ...(formData.note && { note: formData.note }), // Include note if provided
       };
 
-      const response = await bookingApi.createCarpetBooking(bookingData, token);
+      const response = await offlineBookingApi.createCarpetBooking(bookingData, token);
 
       if (response.status === 'error') {
         throw new Error(response.error || 'Failed to create booking');
@@ -127,12 +127,12 @@ export const CarpetBookingModal: React.FC<CarpetBookingModalProps> = ({
         {/* Header */}
         <View style={[
           themeStyles.surface,
-          { 
-            paddingHorizontal: 24, 
+          {
+            paddingHorizontal: 24,
             paddingTop: Math.max(insets.top, 16),
-            paddingBottom: 16, 
-            borderBottomWidth: 1, 
-            borderBottomColor: theme.border 
+            paddingBottom: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border
           }
         ]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>

@@ -26,14 +26,20 @@ import {
 import { AdjustBalanceModal } from '../components/AdjustBalanceModal';
 import { showToast } from '../utils/toast';
 import { RoundedButton } from '../components/RoundedButton';
+import { useOffline } from '../hooks/useOffline';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import { Wallet } from '../types/wallet';
+import { useNavigation } from '@react-navigation/native';
 
 export const AttendantWalletsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigation = useNavigation();
   const { user, token } = useAppSelector((state) => state.auth);
   const walletState = useAppSelector((state) => state.wallet);
   const { theme, isDark } = useTheme();
   const themeStyles = useThemeStyles();
   const isAttendant = user?.role === 'attendant';
+  const { isOnline, sync, unsyncedCount } = useOffline();
 
   const {
     allWallets,
@@ -75,6 +81,16 @@ export const AttendantWalletsScreen: React.FC = () => {
     }
   }, [token]);
 
+  // Trigger sync when coming online
+  useEffect(() => {
+    if (isOnline && token) {
+      // Sync when network comes online to process pending queue items
+      sync().catch(() => {
+        // Silently fail - sync errors are handled internally
+      });
+    }
+  }, [isOnline, token, sync]);
+
 
   const loadInitialData = async () => {
     if (!token) return;
@@ -93,9 +109,30 @@ export const AttendantWalletsScreen: React.FC = () => {
   };
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadInitialData();
-    setRefreshing(false);
+    // Only sync if there's data to sync
+    const totalUnsynced = unsyncedCount.bookings + unsyncedCount.wallets + unsyncedCount.attendants + unsyncedCount.queue;
+
+    // Only show refreshing spinner if there's data to sync
+    if (totalUnsynced > 0) {
+      setRefreshing(true);
+      try {
+        // Sync data when pulling to refresh
+        await sync().catch(() => {
+          // Silently fail - sync errors are handled internally
+        });
+        await loadInitialData();
+      } finally {
+        setRefreshing(false);
+      }
+    } else {
+      // If no data to sync, just refresh the data without showing spinner
+      setRefreshing(true);
+      try {
+        await loadInitialData();
+      } finally {
+        setRefreshing(false);
+      }
+    }
   };
 
 
@@ -337,7 +374,6 @@ export const AttendantWalletsScreen: React.FC = () => {
     }
 
     // For admins, show all wallets
-    console.log('renderAllWallets - allWallets:', allWallets?.length, 'loading:', allWalletsLoading);
 
     if (allWalletsLoading) {
       return (
@@ -355,17 +391,6 @@ export const AttendantWalletsScreen: React.FC = () => {
 
     console.log('renderAllWallets - filteredWallets:', filteredWallets?.length);
 
-    if (filteredWallets.length === 0) {
-      return (
-        <View style={[themeStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
-          <Icon name="credit-card" size={64} color={theme.textSecondary} />
-          <Text style={[themeStyles.textSecondary, { marginTop: 16, fontSize: 18 }]}>
-            {selectedAttendantFilter === 'all' ? 'No wallets found' : 'No wallets found for selected attendant'}
-          </Text>
-        </View>
-      );
-    }
-
     const renderHeader = () => (
       <View style={{ padding: 16 }}>
         <View style={{ marginBottom: 16 }}>
@@ -377,7 +402,7 @@ export const AttendantWalletsScreen: React.FC = () => {
               <RoundedButton
                 title="Settle Balances"
                 onPress={() => setShowSettleModal(true)}
-                disabled={!hasUnpaidWallets}
+                disabled={!hasUnpaidWallets || !isOnline}
                 variant="submit"
                 style={{ flexShrink: 0 }}
               />
@@ -403,35 +428,82 @@ export const AttendantWalletsScreen: React.FC = () => {
       </View>
     );
 
+    const renderEmptyComponent = () => (
+      <View style={[themeStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, minHeight: 400 }]}>
+        <Icon name="credit-card" size={64} color={theme.textSecondary} />
+        <Text style={[themeStyles.textSecondary, { marginTop: 16, fontSize: 18 }]}>
+          {selectedAttendantFilter === 'all' ? 'No wallets found' : 'No wallets found for selected attendant'}
+        </Text>
+      </View>
+    );
+
     return (
       <FlatList
         data={filteredWallets}
         keyExtractor={(item) => item._id}
         ListHeaderComponent={renderHeader}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        ListEmptyComponent={renderEmptyComponent}
+        contentContainerStyle={filteredWallets.length === 0 ? { flexGrow: 1 } : { paddingBottom: 20 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         renderItem={({ item }) => (
-          <View style={{
-            backgroundColor: isDark ? '#334155' : '#f1f5f9',
-            borderRadius: 12,
-            padding: 16,
-            paddingBottom: 32,
-            marginBottom: 12,
-            marginHorizontal: 16,
-            shadowColor: theme.shadow,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isDark ? 0.3 : 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-            overflow: 'visible',
-          }}>
+          <Pressable
+            onPress={() => {
+              if (item.attendant?._id) {
+                try {
+                  // Create a clean, serializable wallet object for navigation
+                  const walletToPass: Wallet = JSON.parse(JSON.stringify({
+                    _id: item._id,
+                    attendant: {
+                      _id: item.attendant._id,
+                      name: item.attendant.name || 'Unknown',
+                      email: item.attendant.email || '',
+                      role: (item.attendant.role || 'attendant') as 'attendant' | 'admin',
+                    },
+                    balance: item.balance || 0,
+                    totalEarnings: item.totalEarnings || 0,
+                    totalCommission: item.totalCommission || 0,
+                    totalCompanyShare: item.totalCompanyShare || 0,
+                    companyDebt: item.companyDebt || 0,
+                    lastPaymentDate: item.lastPaymentDate || null,
+                    isPaid: item.isPaid || false,
+                    adjustments: item.adjustments || [],
+                    createdAt: item.createdAt || new Date().toISOString(),
+                    updatedAt: item.updatedAt || new Date().toISOString(),
+                    __v: (item as any).__v || 0,
+                  }));
+                  (navigation as any).navigate('WalletAdjustments', {
+                    wallet: walletToPass,
+                  });
+                } catch (error) {
+                  console.error('Error navigating to wallet adjustments:', error);
+                }
+              }
+            }}
+            style={{
+              backgroundColor: isDark ? '#334155' : '#f1f5f9',
+              borderRadius: 12,
+              padding: 16,
+              paddingBottom: 32,
+              marginBottom: 12,
+              marginHorizontal: 16,
+              shadowColor: theme.shadow,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDark ? 0.3 : 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+              overflow: 'visible',
+            }}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600' }]}>
-                  {item.attendant?.name || 'Unknown Attendant'}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600' }]}>
+                    {item.attendant?.name || 'Unknown Attendant'}
+                  </Text>
+                  <MaterialIcon name="chevron-right" size={20} color={theme.textSecondary} />
+                </View>
                 <Text style={[themeStyles.textSecondary, { fontSize: 14 }]}>
                   {item.attendant?.email || 'No email'}
                 </Text>
@@ -509,12 +581,12 @@ export const AttendantWalletsScreen: React.FC = () => {
                 <RoundedButton
                   title={item.isPaid ? 'Already Paid' : item.balance === 0 ? 'No Balance' : 'Mark Paid'}
                   onPress={() => handleMarkAsPaid(item.attendant?._id || '', item.attendant?.name || 'Unknown')}
-                  disabled={item.isPaid || item.balance === 0 || !item.attendant}
+                  disabled={item.isPaid || item.balance === 0 || !item.attendant || !isOnline}
                   variant="outline"
                 />
               </View>
             )}
-          </View>
+          </Pressable>
         )}
         ListFooterComponent={() => <View style={{ height: 16 }} />}
       />
@@ -534,6 +606,25 @@ export const AttendantWalletsScreen: React.FC = () => {
             {isAttendant ? 'My Wallet' : 'Attendant Wallets'}
           </Text>
         </View>
+
+        {/* Offline Notification */}
+        {!isOnline && !isAttendant && (
+          <View style={{
+            backgroundColor: theme.warningLight,
+            borderWidth: 1,
+            borderColor: theme.warning,
+            borderRadius: 8,
+            padding: 12,
+            marginTop: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
+            <MaterialIcon name="cloud-off" size={20} color={theme.warning} style={{ marginRight: 8 }} />
+            <Text style={[{ color: theme.warning, fontSize: 14, flex: 1 }]}>
+              You're offline. Settle and Mark Paid features require an internet connection.
+            </Text>
+          </View>
+        )}
 
         {/* Header - Only show filter for admins */}
         {!isAttendant && (
@@ -669,6 +760,26 @@ export const AttendantWalletsScreen: React.FC = () => {
           <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.35)', justifyContent: 'center', paddingHorizontal: 16 }}>
             <View style={[themeStyles.card, { borderRadius: 12, padding: 16, maxHeight: '80%' }]}>
               <Text style={[themeStyles.text, { fontSize: 18, fontWeight: '600', marginBottom: 16 }]}>Settle Attendant Balances</Text>
+
+              {/* Offline Notification in Modal */}
+              {!isOnline && (
+                <View style={{
+                  backgroundColor: theme.warningLight,
+                  borderWidth: 1,
+                  borderColor: theme.warning,
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}>
+                  <MaterialIcon name="cloud-off" size={20} color={theme.warning} style={{ marginRight: 8 }} />
+                  <Text style={[{ color: theme.warning, fontSize: 14, flex: 1 }]}>
+                    You're offline. Settlement requires an internet connection.
+                  </Text>
+                </View>
+              )}
+
               <Text style={[themeStyles.textSecondary, { marginBottom: 16 }]}>
                 Select attendants to settle their balances. This will mark all their bookings as paid.
               </Text>
@@ -741,19 +852,17 @@ export const AttendantWalletsScreen: React.FC = () => {
                 }}
               />
 
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, gap: 12 }}>
+              <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, gap: 12 }}>
                 <RoundedButton
                   title="Cancel"
                   onPress={() => setShowSettleModal(false)}
                   variant="outline"
-                  style={{ flex: 1, maxWidth: '48%' }}
                 />
                 <RoundedButton
                   title={`Settle (${selectedAttendants.length})`}
                   onPress={handleSettleBalances}
-                  disabled={selectedAttendants.length === 0}
+                  disabled={selectedAttendants.length === 0 || !isOnline}
                   variant="submit"
-                  style={{ flex: 1, maxWidth: '48%' }}
                 />
               </View>
             </View>

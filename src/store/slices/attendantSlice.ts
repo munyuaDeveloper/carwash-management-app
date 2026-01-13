@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { userApi } from '../../services/apiAxios';
+import { offlineAttendantApi } from '../../services/offlineApi';
 import { Attendant } from '../../types/booking';
 
 interface AttendantState {
@@ -26,12 +26,23 @@ export const fetchAttendants = createAsyncThunk(
 
       if (userRole === 'attendant') {
         // Attendants don't have permission to fetch all users
-        // Return empty array to avoid 403 error
-        console.log('[AttendantSlice] Skipping fetchAttendants - user is an attendant');
-        return [];
+        // Try to get from local DB instead
+        console.log('[AttendantSlice] User is attendant, loading from local DB');
+        const { databaseService } = await import('../../services/database');
+        const localAttendants = await databaseService.getAttendants({ role: 'attendant' });
+        return localAttendants.map((att) => ({
+          _id: att.serverId || att.id,
+          name: att.name,
+          email: att.email,
+          role: att.role,
+          photo: att.photo,
+          isAvailable: att.isAvailable,
+          createdAt: att.createdAt,
+          updatedAt: att.updatedAt,
+        }));
       }
 
-      const response = await userApi.getAllUsers(token, 'attendant');
+      const response = await offlineAttendantApi.getAllAttendants(token);
 
       if (response.status === 'error') {
         return rejectWithValue(response.error || 'Failed to fetch attendants');
@@ -43,7 +54,7 @@ export const fetchAttendants = createAsyncThunk(
       const attendants = Array.isArray(users)
         ? users.map((user: any) => ({
           ...user,
-          isAvailable: true, // Default to available, can be updated based on business logic
+          isAvailable: user.isAvailable !== undefined ? user.isAvailable : true, // Default to available
         }))
         : [];
 
